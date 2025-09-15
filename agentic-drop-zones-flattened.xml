@@ -1,0 +1,4059 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<files>
+	<file path='.claude/commands/create_image.md'><![CDATA[
+		---
+		name: Create Image
+		allowed-tools: Bash, mcp__replicate__create_models_predictions, mcp__replicate__get_predictions
+		description: Generate image(s) via Replicate
+		---
+		
+		# Create Image
+		
+		This command generates image(s) based on the provided prompt using Replicate.
+		
+		## Variables
+		
+		DROPPED_FILE_PATH: [[FILE_PATH]]
+		DROPPED_FILE_PATH_ARCHIVE: agentic_drop_zone/generate_images_zone/drop_zone_file_archive/
+		IMAGE_OUTPUT_DIR: agentic_drop_zone/generate_images_zone/image_output/<date_time>/
+		    - This is the directory where all images will be saved
+		    - The date_time is the current date and time in the format YYYY-MM-DD_HH-MM-SS
+		MODEL: google/nano-banana
+		ASPECT_RATIO: 16:9
+		
+		## Workflow
+		
+		- First, read `DROPPED_FILE_PATH`.
+		- Create output directory: `IMAGE_OUTPUT_DIR/<date_time>/`
+		- IMPORTANT: For every image prompt detailed in the `DROPPED_FILE_PATH` do the following:
+		
+		<image-loop>
+		  - Use `mcp__replicate__create_models_predictions` with the MODEL specified above
+		  - Pass image prompt as the prompt input
+		  - Use ASPECT_RATIO for the image dimensions
+		  - Wait for completion by polling `mcp__replicate__get_predictions`
+		  - Save the executed prompts to `IMAGE_OUTPUT_DIR/<date_time>/image_prompt_<concise_name_based_on_prompt>.txt`
+		    - Use the exact prompt that was executed in the `mcp__replicate__create_models_predictions` call
+		  - Download the image: `IMAGE_OUTPUT_DIR/<date_time>/<MODEL_NAME_underscore_separated>_<concise_name_based_on_prompt>.jpg`
+		  - Display:
+		    - Generation time
+		    - File size
+		    - Full path to saved image
+		</image-loop>
+		- After all images are generated, open the output directory: `open IMAGE_OUTPUT_DIR/<date_time>/`
+		- When you finish generating images, move the `DROPPED_FILE_PATH` into a `DROPPED_FILE_PATH_ARCHIVE` directory]]></file>
+	<file path='.claude/commands/echo.md'><![CDATA[
+		# Echo Command
+		
+		Echo the contents of the file at DROPPED_FILE_PATH and provide a brief summary.
+		
+		## Variables
+		
+		DROPPED_FILE_PATH: [[FILE_PATH]]
+		DROPPED_FILE_PATH_ARCHIVE: agentic_drop_zone/echo_zone/drop_zone_file_archive/
+		
+		## Workflow
+		1. Read the file contents at DROPPED_FILE_PATH
+		2. Write out the file in between a markdown code block
+		3. Below log the total number of characters in the file and the file name
+		4. Move the file to the archive: `mv DROPPED_FILE_PATH DROPPED_FILE_PATH_ARCHIVE/`
+		
+		## Example Output Format
+		
+		```
+		<file_contents>
+		
+		total characters: <number_of_characters>
+		file name: <file_name>
+		```]]></file>
+	<file path='.claude/commands/edit_image.md'><![CDATA[
+		---
+		name: Edit Image
+		allowed-tools: Bash, Read
+		description: Edit existing images via Replicate using direct curl API calls
+		---
+		
+		# Edit Image
+		
+		This command edits existing images based on provided edit prompts using Replicate's API directly via curl.
+		
+		## Prerequisites
+		
+		- REPLICATE_API_TOKEN must be exported in the environment
+		- Requires base64 command for inline image encoding
+		
+		## Variables
+		
+		DROPPED_FILE_PATH: [[FILE_PATH]]
+		DROPPED_FILE_PATH_ARCHIVE: agentic_drop_zone/edit_images_zone/drop_zone_file_archive/
+		IMAGE_OUTPUT_DIR: agentic_drop_zone/edit_images_zone/image_output/<date_time>/
+		    - This is the directory where all images will be saved
+		    - The date_time is the current date and time in the format YYYY-MM-DD_HH-MM-SS
+		MODEL: google/nano-banana
+		API_ENDPOINT: https://api.replicate.com/v1/models/google/nano-banana/predictions
+		
+		## Workflow
+		
+		- Note: REPLICATE_API_TOKEN will be available, don't search for it and NEVER read the .env file directly.   
+		  - IMPORTANT: If for some reason you run into issues with authentication, abort immediately - do not continue with any image processing. Mention that the REPLICATE_API_TOKEN might be missing.
+		- First, read `DROPPED_FILE_PATH`.
+		- Create output directory: `IMAGE_OUTPUT_DIR/<date_time>/`
+		- IMPORTANT: For every image edit detailed in the `DROPPED_FILE_PATH` do the following:
+		
+		<image-loop>
+		  - Extract the source image path and edit prompt from the dropped file
+		  - Use curl with inline base64 encoding to send image directly to Replicate API:
+		    ```bash
+		    curl -s -X POST \
+		      -H "Authorization: Bearer $REPLICATE_API_TOKEN" \
+		      -H "Content-Type: application/json" \
+		      -H "Prefer: wait" \
+		      -d '{
+		        "input": {
+		          "prompt": "YOUR_EDIT_PROMPT_HERE",
+		          "image_input": ["data:image/jpeg;base64,'$(base64 -i /path/to/source/image.jpg)'"],
+		          "output_format": "jpg"
+		        }
+		      }' \
+		      https://api.replicate.com/v1/models/google/nano-banana/predictions
+		    ```
+		  - IMPORTANT: Replace `YOUR_EDIT_PROMPT_HERE` with the actual edit instruction
+		  - IMPORTANT: Replace `/path/to/source/image.jpg` with the actual source image path which should be detailed in the `DROPPED_FILE_PATH`
+		  - IMPORTANT: The base64 encoding happens inline using `$(base64 -i /path/to/image.jpg)`
+		  - Parse JSON response to extract the `output` URL field for the generated image
+		    - Response format: `{"id":"...", "output":"https://replicate.delivery/...jpg", "status":"succeeded"}`
+		    - Extract URL with `jq -r '.output'`
+		  - Save the executed edit prompts to `IMAGE_OUTPUT_DIR/<date_time>/edit_prompt_<concise_name_based_on_prompt>.txt`
+		    - Include both the source image path and the exact edit prompt that was executed
+		  - Download the edited image from the output URL: `curl -o IMAGE_OUTPUT_DIR/<date_time>/<MODEL_NAME_underscore_separated>_edited_<concise_name_based_on_prompt>.jpg "OUTPUT_URL"`
+		  - Display:
+		    - Source image path
+		    - Edit prompt used
+		    - Generation time (if available in response)
+		    - File size of downloaded image
+		    - Full path to saved edited image
+		    - Replicate output URL for reference
+		</image-loop>
+		
+		- After all images are edited, copy all original source images to the output directory for reference:
+		  - For each source image that was processed, copy it with "original_" prefix
+		  - Example: `cp /path/to/cat.jpg IMAGE_OUTPUT_DIR/<date_time>/original_cat.jpg`
+		  - This allows easy before/after comparison in the same directory
+		- After copying originals, open the output directory: `open IMAGE_OUTPUT_DIR/<date_time>/`
+		- When you finish editing images, move the `DROPPED_FILE_PATH` into a `DROPPED_FILE_PATH_ARCHIVE` directory
+		
+		## Example Usage
+		
+		```bash
+		# The REPLICATE_API_TOKEN is sourced from the .env file
+		
+		
+		# Execute image edit with inline base64 encoding
+		RESPONSE=$(curl -s -X POST \
+		  -H "Authorization: Bearer $REPLICATE_API_TOKEN" \
+		  -H "Content-Type: application/json" \
+		  -H "Prefer: wait" \
+		  -d '{
+		    "input": {
+		      "prompt": "Make the cat blue",
+		      "image_input": ["data:image/jpeg;base64,'$(base64 -i ./source_image.jpg)'"],
+		      "output_format": "jpg"
+		    }
+		  }' \
+		  https://api.replicate.com/v1/models/google/nano-banana/predictions)
+		
+		# Extract output URL and download
+		OUTPUT_URL=$(echo "$RESPONSE" | jq -r '.output')
+		curl -o edited_image.jpg "$OUTPUT_URL"
+		```]]></file>
+	<file path='.claude/commands/finance_categorizer.md'><![CDATA[
+		# Finance Categorizer
+		
+		This command analyzes bank statement CSV files, corrects missing or incorrect categorizations, and generates comprehensive spending reports with visual indicators for high spending areas.
+		
+		## Instructions
+		
+		- IMPORTANT: Use inline astral uv python code (with any libraries you need) to calculate the totals and percentages. Use `uv run python --with pandas --with <whatever library you need> -c "import pandas as pd; print(\"whatever you want here\")"` to test your code.
+		  - Example: `uv run --with rich python -c "from rich.console import Console; Console().print('Hello', style='bold red')"`
+		- IMPORTANT: Think hard about your calculations ALWAYS double check your work as you go along.
+		- IMPORTANT: After you generate your report, review your numbers comprehensively with python. Also, make sure you write emojis and not unicode characters.
+		- In your finance_report.yaml file, do not use yaml anchors or aliases and do not use !!python tags. Write everything out as primitive types even if it means duplicating data.
+		
+		## Variables
+		
+		DROPPED_FILE_PATH: [[FILE_PATH]]
+		DROPPED_FILE_PATH_ARCHIVE: agentic_drop_zone/finance_zone/drop_zone_file_archive/
+		FINANCE_OUTPUT_DIR: agentic_drop_zone/finance_zone/finance_output/<date_time>/
+		    - This is the directory where all processed files and reports will be saved
+		    - The date_time is the current date and time in the format YYYY-MM-DD_HH-MM-SS
+		
+		### Output File Paths
+		CATEGORIZED_STATEMENT: FINANCE_OUTPUT_DIR/<date_time>/categorized_statement.csv
+		    - The cleaned and properly categorized bank statement
+		FINANCE_REPORT: FINANCE_OUTPUT_DIR/<date_time>/finance_report.yaml
+		    - The comprehensive financial analysis report in YAML format
+		SPENDING_PIE_CHART: FINANCE_OUTPUT_DIR/<date_time>/spending_by_category.png
+		    - Pie chart visualization of spending by category
+		BALANCE_LINE_CHART: FINANCE_OUTPUT_DIR/<date_time>/balance_over_time.png
+		    - Line chart showing account balance progression over time
+		
+		### Spending Thresholds (per category monthly spending)
+		LOW_SPENDING_THRESHOLD: 500
+		    - Categories under this amount get 💰 emoji
+		MODERATE_SPENDING_THRESHOLD: 1000  
+		    - Categories between LOW and MODERATE get 🔥 emoji
+		HIGH_SPENDING_THRESHOLD: 2000
+		    - Categories between MODERATE and HIGH get 🔥🔥 emoji
+		    - Categories over HIGH get 🔥🔥🔥 emoji
+		
+		### Individual Transaction Alerts
+		LARGE_TRANSACTION: 500
+		    - Single transactions over this get 🚨 flag
+		UNUSUAL_TRANSACTION: 1000
+		    - Single transactions over this get ⚠️ flag
+		MAJOR_PURCHASE: 2500
+		    - Single transactions over this get 🔴 flag
+		
+		### Budget Warning Percentages
+		HOUSING_WARNING_PCT: 30
+		    - Alert if housing > this % of monthly income
+		DINING_ENTERTAINMENT_WARNING_PCT: 20
+		    - Alert if dining/entertainment > this % of total expenses
+		SHOPPING_WARNING_PCT: 15
+		    - Alert if shopping > this % of total expenses
+		TRANSPORTATION_WARNING_PCT: 20
+		    - Alert if transportation > this % of total expenses
+		SUBSCRIPTION_WARNING_PCT: 10
+		    - Alert if subscriptions > this % of total expenses
+		
+		## Workflow
+		
+		### Setup Phase
+		- Create output directory: `mkdir -p FINANCE_OUTPUT_DIR/<date_time>/`
+		- Copy original file to preserve it: `cp DROPPED_FILE_PATH FINANCE_OUTPUT_DIR/<date_time>/original_statement.csv`
+		- Create working copy: `cp FINANCE_OUTPUT_DIR/<date_time>/original_statement.csv FINANCE_OUTPUT_DIR/<date_time>/categorized_statement.csv`
+		
+		### Analysis & Categorization Phase
+		- Read the working copy: `FINANCE_OUTPUT_DIR/<date_time>/categorized_statement.csv`
+		- For each transaction row:
+		  - Check if category is missing or incorrect
+		  - Apply categorization rules from "How to Categorize" section
+		  - Track which categories need updating
+		- Use MultiEdit to update all categories at once in the working copy
+		- Verify all transactions now have appropriate categories
+		
+		### Calculation Phase
+		- Calculate totals:
+		  - Total income = sum of all deposits
+		  - Total expenses = sum of all withdrawals
+		  - Net cash flow = income - expenses
+		- Group expenses by category and calculate:
+		  - Total spending per category
+		  - Number of transactions per category
+		  - Percentage of total expenses per category
+		- Identify top 5 spending categories
+		- Identify top 5 largest individual transactions
+		- Count transactions exceeding alert thresholds
+		
+		### Report Generation Phase
+		- Create report file: `FINANCE_OUTPUT_DIR/<date_time>/finance_report.yaml`
+		- Generate visualization charts as PNG files (use matplotlib with optional seaborn for styling):
+		  1. **Spending Pie Chart** (`FINANCE_OUTPUT_DIR/<date_time>/spending_by_category.png`):
+		     - Use matplotlib or plotly to create a pie chart
+		     - Show top 10 categories by spending amount
+		     - Include percentages and dollar amounts on labels
+		     - Use distinct colors for each category
+		     - Title: "Monthly Spending by Category - [Month Year]"
+		     - Figure size: 12x8 inches
+		     - DPI: 150 for high quality
+		     - Add legend with category names and amounts
+		     - Explode the largest spending category slightly for emphasis
+		     - Example command:
+		       ```bash
+		       uv run --with pandas --with matplotlib python -c "
+		       import pandas as pd
+		       import matplotlib.pyplot as plt
+		       # Read categorized data
+		       df = pd.read_csv('categorized_statement.csv')
+		       # Group by category and sum withdrawals
+		       # Create pie chart with top 10 categories
+		       # plt.figure(figsize=(12, 8))
+		       # plt.savefig('spending_by_category.png', dpi=150, bbox_inches='tight')
+		       "
+		       ```
+		  
+		  2. **Account Balance Chart** (`FINANCE_OUTPUT_DIR/<date_time>/balance_over_time.png`):
+		     - Create a line chart showing balance progression through the month
+		     - X-axis: dates (formatted as MM/DD)
+		     - Y-axis: running balance (formatted with $ and commas)
+		     - Mark major transactions (>$1000) with red dots and annotations
+		     - Add horizontal dashed line for starting balance
+		     - Add horizontal dotted line for ending balance
+		     - Include grid for better readability
+		     - Title: "Account Balance Over Time - [Month Year]"
+		     - Figure size: 14x7 inches
+		     - DPI: 150 for high quality
+		     - Use gradient fill below the line (green for positive, red for negative if applicable)
+		     - Add min/max balance annotations
+		     - Example command:
+		       ```bash
+		       uv run --with pandas --with matplotlib python -c "
+		       import pandas as pd
+		       import matplotlib.pyplot as plt
+		       import matplotlib.dates as mdates
+		       # Read categorized data
+		       df = pd.read_csv('categorized_statement.csv')
+		       # Convert date column to datetime
+		       # plt.figure(figsize=(14, 7))
+		       # Plot balance over time with styling
+		       # Annotate major transactions
+		       # plt.savefig('balance_over_time.png', dpi=150, bbox_inches='tight')
+		       "
+		       ```
+		
+		- Generate YAML report with the following structure:
+		
+		```yaml
+		report_date: YYYY-MM-DD HH:MM:SS
+		month_analyzed: August 2025
+		
+		financial_summary:
+		  total_income: 20000.00
+		  total_expenses: 74567.89
+		  net_cash_flow: -54567.89
+		  cash_flow_status: negative  # positive or negative
+		  transactions_analyzed: 87
+		
+		top_spending_categories:
+		  - category: "AI Services"
+		    amount: 45678.90
+		    emoji: "🔥🔥🔥"  # Based on thresholds
+		    percentage: 61.2
+		    transaction_count: 23
+		  - category: "Technology - Cloud"
+		    amount: 12345.67
+		    emoji: "🔥🔥🔥"
+		    percentage: 16.5
+		    transaction_count: 15
+		  # ... top 5
+		
+		largest_transactions:
+		  - date: "2025-08-29"
+		    description: "ANTHROPIC CLAUDE-OPUS-4-1-API"
+		    amount: 6789.01
+		    category: "AI Services"
+		    alert: "🔴"  # Based on individual thresholds
+		  - date: "2025-08-22"
+		    description: "AWS MONTHLY BILLING 866-216-1072"
+		    amount: 5678.90
+		    category: "Technology"
+		    alert: "🔴"
+		  # ... top 5
+		
+		all_categories:
+		  - category: "AI Services"
+		    amount: 45678.90
+		    transactions: 23
+		    percentage: 61.2
+		  - category: "Amazon"
+		    amount: 23456.78
+		    transactions: 18
+		    percentage: 31.4
+		  # ... all categories sorted by amount
+		
+		budget_warnings:
+		  - type: "Housing"
+		    actual_percentage: 21.0
+		    recommended_max: 30
+		    status: "OK"
+		  - type: "Shopping"
+		    actual_percentage: 31.4
+		    recommended_max: 15
+		    status: "⚠️ EXCEEDED"
+		  # ... check all warning categories
+		
+		transaction_alerts:
+		  major_purchases:  # Over MAJOR_PURCHASE threshold
+		    count: 12
+		    total: 45678.90
+		  unusual_transactions:  # Over UNUSUAL_TRANSACTION threshold
+		    count: 28
+		    total: 67890.12
+		  large_transactions:  # Over LARGE_TRANSACTION threshold
+		    count: 45
+		    total: 89012.34
+		
+		insights:
+		  highest_spending_day:
+		    date: "2025-08-29"
+		    amount: 9234.56
+		  most_frequent_merchant:
+		    name: "AMAZON"
+		    count: 18
+		  total_amazon_spending: 23456.78
+		  subscription_count: 6
+		  
+		subscriptions_detected:
+		  - name: "Netflix"
+		    amount: 15.99
+		  - name: "Spotify"
+		    amount: 9.99
+		  - name: "AWS"
+		    amount: 5678.90
+		  # ... all recurring charges
+		
+		recommendations:
+		  - "AI Services spending (61.2%) is extremely high - review API usage and consider optimization"
+		  - "Shopping exceeds budget by 16.4% - consider reducing Amazon purchases"
+		  - "Multiple AWS charges detected - consolidate billing or review unused services"
+		
+		visualizations:
+		  spending_pie_chart: "spending_by_category.png"
+		  balance_line_chart: "balance_over_time.png"
+		```
+		
+		### Completion Phase
+		- Save the categorized statement and report
+		- Display summary in console:
+		  ```
+		  ✅ Processing Complete
+		  - Transactions processed: XX
+		  - Categories fixed: XX
+		  - Files created:
+		    - categorized_statement.csv
+		    - finance_report.yaml
+		    - spending_by_category.png
+		    - balance_over_time.png
+		  ```
+		- Open output directory: `open FINANCE_OUTPUT_DIR/<date_time>/`
+		- Archive the original: `mv DROPPED_FILE_PATH DROPPED_FILE_PATH_ARCHIVE/`
+		
+		## How to Categorize
+		
+		Apply these rules in order of priority:
+		
+		### Priority 1: Merchant-Specific Mappings
+		- AMAZON (any mention including AMZN but not AWS) → `Amazon`
+		- AWS (Amazon Web Services) → `Technology - Cloud`
+		- ANTHROPIC, CLAUDE → `AI Services`
+		- OPENAI, GPT, DALL-E → `AI Services`
+		- GOOGLE NANO-BANANA → `AI Services`
+		- GOOGLE COMPUTE, COMPUTE ENGINE, EC2, VM, INSTANCE → `Compute`
+		- TARGET → `Retail Shopping`
+		- WALMART, COSTCO, SAM'S CLUB → `Wholesale Shopping`
+		- SAFEWAY, KROGER, WHOLE FOODS, TRADER JOE'S → `Groceries`
+		- UBER (not UBER EATS), LYFT, TAXI → `Transportation - Rideshare`
+		- SHELL, CHEVRON, EXXON, GAS STATION → `Transportation - Gas`
+		- TESLA, CAR PAYMENT → `Transportation - Auto`
+		- NETFLIX, HULU, SPOTIFY, APPLE MUSIC → `Entertainment - Streaming`
+		- STARBUCKS, COFFEE, CAFE, BLUE BOTTLE, PHILZ → `Dining - Coffee`
+		- RESTAURANT, BISTRO, SUSHI, PIZZA → `Dining - Restaurant`
+		- UBER EATS, DOORDASH, GRUBHUB → `Dining - Delivery`
+		- CHIPOTLE, MCDONALD'S, SUBWAY → `Dining - Fast Food`
+		
+		### Priority 2: Keyword-Based Rules
+		- MORTGAGE, RENT → `Housing - Primary`
+		- ELECTRIC, PG&E, WATER, UTILITY → `Utilities`
+		- INSURANCE → `Insurance - [Type]` (Auto/Health/Life based on context)
+		- GYM, FITNESS, EQUINOX, YOGA → `Health - Fitness`
+		- DOCTOR, DENTIST, MEDICAL, DR → `Health - Medical`
+		- PHARMACY, CVS, WALGREENS → `Health - Pharmacy`
+		- PAYROLL, SALARY, DIRECT DEPOSIT, ACH CREDIT → `Income - Salary`
+		- TAX, IRS, COUNTY TAX → `Taxes`
+		- INVESTMENT, SCHWAB, FIDELITY, VANGUARD → `Investment`
+		- PHONE, VERIZON, AT&T, T-MOBILE → `Utilities - Phone`
+		- INTERNET, XFINITY, COMCAST → `Utilities - Internet`
+		- PET, VET, PETCO → `Pet Care`
+		- HOME DEPOT, LOWE'S → `Home Improvement`
+		- PARKING METER, PARKING → `Transportation - Parking`
+		- AIRLINE, HOTEL, AIRBNB → `Travel`
+		- APPLE STORE, BEST BUY → `Shopping - Electronics`
+		- NORDSTROM, GAP, H&M → `Shopping - Clothing`
+		
+		### Priority 3: Default Categories
+		- Deposits without clear source → `Income - Other`
+		- Withdrawals without clear purpose → `Cash Withdrawal`
+		- Any Amazon not categorized → `Amazon`
+		- Food-related uncategorized → `Groceries`
+		- Service-related uncategorized → `Services`
+		- Retail uncategorized → `Shopping - General`
+		
+		## My Categories
+		
+		- `AI Services`
+		- `Amazon`
+		- `Banking Fees`
+		- `Cash Withdrawal`
+		- `Cloud Computing`
+		- `Compute`
+		- `Dining - Coffee`
+		- `Dining - Delivery`
+		- `Dining - Fast Food`
+		- `Dining - Restaurant`
+		- `Entertainment - General`
+		- `Entertainment - Streaming`
+		- `Groceries`
+		- `Health - Fitness`
+		- `Health - Medical`
+		- `Health - Pharmacy`
+		- `Home Improvement`
+		- `Housing - Primary`
+		- `Income - Other`
+		- `Income - Salary`
+		- `Insurance - Auto`
+		- `Insurance - Health`
+		- `Insurance - Life`
+		- `Investment`
+		- `Miscellaneous`
+		- `Pet Care`
+		- `Retail Shopping`
+		- `Services`
+		- `Shopping - Clothing`
+		- `Shopping - Electronics`
+		- `Shopping - General`
+		- `Taxes`
+		- `Technology - Cloud`
+		- `Technology - Software`
+		- `Transportation - Auto`
+		- `Transportation - Gas`
+		- `Transportation - Parking`
+		- `Transportation - Rideshare`
+		- `Travel`
+		- `Utilities`
+		- `Utilities - Internet`
+		- `Utilities - Phone`
+		- `Wholesale Shopping`]]></file>
+	<file path='.claude/commands/more_training_data.md'><![CDATA[
+		---
+		name: Generate More Training Data
+		allowed-tools: Bash, Read, Write
+		description: Analyze data patterns and generate additional synthetic training data
+		---
+		
+		# Generate More Training Data
+		
+		This command analyzes patterns in existing data files (CSV, JSONL) and generates additional synthetic training data based on those patterns. Uses bash commands or inline uv python to append data efficiently without loading large files into memory.
+		
+		## Instructions
+		
+		- IMPORTANT: You can use inline astral uv python code (with any libraries you need) for data processing. Use `uv run python --with pandas --with <whatever library you need> -c "import pandas as pd; print(\"whatever you want here\")"` 
+		  - Example: `uv run --with pandas --with faker python -c "import pandas as pd; from faker import Faker; fake = Faker(); print(fake.name())"`
+		- IMPORTANT: Both bash commands and uv python are acceptable - choose the most efficient approach for each task
+		- IMPORTANT: When generating synthetic data, ensure variety and realistic patterns
+		
+		## Variables
+		
+		DROPPED_FILE_PATH: [[FILE_PATH]]
+		DROPPED_FILE_PATH_ARCHIVE: agentic_drop_zone/training_data_zone/drop_zone_file_archive/
+		DATA_OUTPUT_DIR: agentic_drop_zone/training_data_zone/data_output/<date_time>/
+		    - This is the directory where all generated data will be saved
+		    - The date_time is the current date and time in the format YYYY-MM-DD_HH-MM-SS
+		NUM_NEW_ROWS: 25
+		    - Default number of new data rows to generate
+		    - Can be overridden if specified in the dropped file
+		SAMPLE_SIZE: 50
+		    - Number of rows to sample for pattern analysis (keeps context window small)
+		    - Use Read with only a specific number of rows to keep the context window small
+		
+		## Workflow
+		
+		- Create output directory: `DATA_OUTPUT_DIR/<date_time>/`
+		- Determine file format by extension (.csv or .jsonl)
+		- Copy the original file to output directory: `cp DROPPED_FILE_PATH DATA_OUTPUT_DIR/<date_time>/original_<filename>`
+		
+		### Pattern Analysis Phase
+		
+		- Extract a sample for analysis (to keep context window small):
+		  
+		  **Option 1: Using bash commands**
+		  - For CSV: `head -n SAMPLE_SIZE DROPPED_FILE_PATH > DATA_OUTPUT_DIR/<date_time>/sample.csv`
+		  - For JSONL: `head -n SAMPLE_SIZE DROPPED_FILE_PATH > DATA_OUTPUT_DIR/<date_time>/sample.jsonl`
+		  
+		  **Option 2: Using uv python**
+		  ```bash
+		  # For CSV
+		  uv run --with pandas python -c "
+		  import pandas as pd
+		  df = pd.read_csv('DROPPED_FILE_PATH', nrows=100)
+		  df.to_csv('DATA_OUTPUT_DIR/<date_time>/sample.csv', index=False)
+		  print(f'Sampled {len(df)} rows for analysis')
+		  "
+		  
+		  # For JSONL
+		  uv run --with pandas python -c "
+		  import pandas as pd
+		  df = pd.read_json('DROPPED_FILE_PATH', lines=True, nrows=100)
+		  df.to_json('DATA_OUTPUT_DIR/<date_time>/sample.jsonl', orient='records', lines=True)
+		  print(f'Sampled {len(df)} rows for analysis')
+		  "
+		  ```
+		
+		- Read and analyze ONLY the sample file to determine:
+		  - Data schema/structure
+		  - Field types and patterns
+		  - Value distributions and constraints
+		  - Any relationships between fields
+		
+		**For CSV files:**
+		- Identify column headers from first line
+		- Detect data types for each column (numeric, text, date, boolean, etc.)
+		- Analyze value ranges for numeric columns
+		- Identify patterns in text fields (emails, phone numbers, IDs, etc.)
+		- Check for categorical values and their distributions
+		
+		**For JSONL files:**
+		- Parse each line as a separate JSON object
+		- Identify all keys and their data types
+		- Detect enumerated values and their frequencies
+		- Identify any ID patterns or sequences
+		- Note: Each line must be a complete, valid JSON object
+		
+		### Data Generation Phase
+		
+		- Based on the pattern analysis, generate `NUM_NEW_ROWS` new data entries
+		- Write the new data to a separate file:
+		  - For CSV: `DATA_OUTPUT_DIR/<date_time>/new_rows.csv` (without headers)
+		  - For JSONL: `DATA_OUTPUT_DIR/<date_time>/new_rows.jsonl`
+		
+		  **Example using uv python with faker:**
+		  ```bash
+		  # Generate synthetic CSV data
+		  uv run --with pandas --with faker python -c "
+		  import pandas as pd
+		  from faker import Faker
+		  import random
+		  fake = Faker()
+		  
+		  # Generate 25 rows of synthetic data based on analyzed patterns
+		  data = []
+		  for i in range(25):
+		      row = {
+		          'id': i + 1000,  # Continue from existing IDs
+		          'name': fake.name(),
+		          'email': fake.email(),
+		          'age': random.randint(22, 65),
+		          'department': random.choice(['Engineering', 'Marketing', 'Sales', 'Support'])
+		      }
+		      data.append(row)
+		  
+		  df = pd.DataFrame(data)
+		  df.to_csv('DATA_OUTPUT_DIR/<date_time>/new_rows.csv', index=False, header=False)
+		  print(f'Generated {len(df)} new rows')
+		  "
+		  ```
+		
+		- Generated data should:
+		  - Follow the same structure as the original
+		  - Maintain realistic value distributions
+		  - Preserve relationships between fields
+		  - Use similar patterns for IDs, dates, etc.
+		  - Include variation to avoid exact duplicates
+		  - Maintain data integrity constraints observed in original
+		
+		### Append Phase
+		
+		- Create the extended dataset by appending new rows to a copy of the original:
+		
+		  **Option 1: Using bash commands**
+		  
+		  For CSV:
+		  ```bash
+		  # Copy original to extended file
+		  cp DATA_OUTPUT_DIR/<date_time>/original_<filename> DATA_OUTPUT_DIR/<date_time>/extended_data.csv
+		  
+		  # Append new rows (skip header if present in new_rows.csv)
+		  tail -n +2 DATA_OUTPUT_DIR/<date_time>/new_rows.csv >> DATA_OUTPUT_DIR/<date_time>/extended_data.csv
+		  ```
+		  
+		  For JSONL:
+		  ```bash
+		  # Copy original to extended file
+		  cp DATA_OUTPUT_DIR/<date_time>/original_<filename> DATA_OUTPUT_DIR/<date_time>/extended_data.jsonl
+		  
+		  # Append new rows
+		  cat DATA_OUTPUT_DIR/<date_time>/new_rows.jsonl >> DATA_OUTPUT_DIR/<date_time>/extended_data.jsonl
+		  ```
+		
+		  **Option 2: Using uv python**
+		  
+		  For CSV:
+		  ```bash
+		  uv run --with pandas python -c "
+		  import pandas as pd
+		  
+		  # Read original and new data
+		  original = pd.read_csv('DATA_OUTPUT_DIR/<date_time>/original_<filename>')
+		  new_rows = pd.read_csv('DATA_OUTPUT_DIR/<date_time>/new_rows.csv', header=None, names=original.columns)
+		  
+		  # Combine and save
+		  extended = pd.concat([original, new_rows], ignore_index=True)
+		  extended.to_csv('DATA_OUTPUT_DIR/<date_time>/extended_data.csv', index=False)
+		  print(f'Extended dataset: {len(original)} -> {len(extended)} rows')
+		  "
+		  ```
+		  
+		  For JSONL:
+		  ```bash
+		  uv run --with pandas python -c "
+		  import pandas as pd
+		  
+		  # Read original and new data
+		  original = pd.read_json('DATA_OUTPUT_DIR/<date_time>/original_<filename>', lines=True)
+		  new_rows = pd.read_json('DATA_OUTPUT_DIR/<date_time>/new_rows.jsonl', lines=True)
+		  
+		  # Combine and save
+		  extended = pd.concat([original, new_rows], ignore_index=True)
+		  extended.to_json('DATA_OUTPUT_DIR/<date_time>/extended_data.jsonl', orient='records', lines=True)
+		  print(f'Extended dataset: {len(original)} -> {len(extended)} rows')
+		  "
+		  ```
+		
+		### Reporting Phase
+		
+		- Count rows in original and extended files:
+		  ```bash
+		  # For CSV (subtract 1 for header)
+		  ORIGINAL_COUNT=$(($(wc -l < DATA_OUTPUT_DIR/<date_time>/original_<filename>) - 1))
+		  EXTENDED_COUNT=$(($(wc -l < DATA_OUTPUT_DIR/<date_time>/extended_data.csv) - 1))
+		  
+		  # For JSONL
+		  ORIGINAL_COUNT=$(wc -l < DATA_OUTPUT_DIR/<date_time>/original_<filename>)
+		  EXTENDED_COUNT=$(wc -l < DATA_OUTPUT_DIR/<date_time>/extended_data.jsonl)
+		  ```
+		
+		- Create analysis report `DATA_OUTPUT_DIR/<date_time>/data_analysis_report.md`:
+		  - Original file name and format
+		  - Sample size analyzed
+		  - Detected schema/structure
+		  - Field types and patterns identified
+		  - Value distributions observed
+		  - Generation strategy used
+		  - Number of rows: original vs extended
+		
+		- Create metadata file `DATA_OUTPUT_DIR/<date_time>/generation_metadata.json`:
+		  ```json
+		  {
+		    "source_file": "path/to/original",
+		    "generation_timestamp": "ISO-8601 timestamp",
+		    "rows_generated": 25,
+		    "original_row_count": X,
+		    "extended_row_count": Y,
+		    "file_format": "csv|jsonl",
+		    "sample_size_analyzed": 100,
+		    "fields_analyzed": ["field1", "field2", ...]
+		  }
+		  ```
+		
+		- Display summary:
+		  - Original file analyzed
+		  - Number of rows in original
+		  - Number of new rows generated
+		  - Total rows in extended file
+		  - Output files created
+		  - Processing time
+		
+		- Open the output directory: `open DATA_OUTPUT_DIR/<date_time>/`
+		- When finished, move the `DROPPED_FILE_PATH` into `DROPPED_FILE_PATH_ARCHIVE` directory
+		
+		## Important Notes
+		
+		- **CSV Format:** Must have headers in first row, data starts from row 2
+		- **JSONL Format:** Each line is a complete JSON object, not a JSON array
+		- **Large Files:** This approach keeps large files out of the agent's context window by:
+		  - Only reading a sample for analysis
+		  - Generating to separate files
+		  - Using bash commands for appending
+		- **Performance:** Bash append operations are fast and memory-efficient
+		- **Data Integrity:** The extended file preserves all original data unchanged
+		
+		## Example Patterns to Recognize
+		
+		**CSV Example:**
+		```csv
+		id,name,email,age,department
+		1,John Doe,john@example.com,28,Engineering
+		2,Jane Smith,jane@example.com,32,Marketing
+		```
+		→ Generate: Sequential IDs, realistic names, email patterns, age ranges, department categories
+		
+		**JSONL Example:**
+		```jsonl
+		{"user_id": "USR001", "score": 85.5, "tags": ["python", "ml"], "active": true}
+		{"user_id": "USR002", "score": 92.0, "tags": ["javascript"], "active": false}
+		```
+		→ Generate: USR-prefixed IDs, scores in similar range, relevant tags, boolean values
+		
+		## Special Handling
+		
+		- **Look for override instructions:** Check if the dropped file contains a comment like `# generate_rows: 50` or `"generate_rows": 50` to override NUM_NEW_ROWS
+		- **Preserve formatting:** Maintain consistent decimal places, date formats, etc.
+		- **Handle edge cases:** Empty files, malformed data should be reported gracefully
+		- **Memory efficiency:** Never load the full extended dataset into memory]]></file>
+	<file path='.claude/commands/morning_debrief.md'><![CDATA[
+		---
+		name: Morning Debrief
+		allowed-tools: Bash, Read, Write
+		description: Transcribe morning debrief audio and analyze for engineering ideas and priorities
+		---
+		
+		# Morning Debrief Analyzer
+		
+		This prompt transcribes morning debrief audio recordings using OpenAI Whisper and analyzes the transcript to extract and organize key engineering ideas discussed. It creates a structured summary with the current date and quarter, identifies the top 3 priorities, lists all key ideas from the debrief, and generates novel extensions based on those ideas, and generates leading questions that can guide our work today with ideas for potential answers and next steps. Then it creates a transcript section with the full transcript of the debrief with every sentence as an individual item in a bulleted list. The output follows a clear hierarchical structure that makes it easy to reference during the workday. See the `Instructions` section for the detailed process. Output your results in a new markdown file with an alphanumeric + underscore name based on the original transcript file name.
+		
+		## Prerequisites
+		
+		- OpenAI Whisper must be installed
+		- If you encounter installation errors, STOP and notify the user:
+		  ```
+		  Whisper is not installed. Please run:
+		  uv tool install openai-whisper
+		  ```
+		
+		## Variables
+		
+		AUDIO_FILE_PATH: [[FILE_PATH]]
+		DEBRIEF_OUTPUT_DIR: agentic_drop_zone/morning_debrief_zone/debrief_output/<date_time>/
+		DEBRIEF_ARCHIVE_DIR: DEBRIEF_OUTPUT_DIR/drop_zone_file_archive/
+		
+		## Instructions
+		- First, check if whisper is available by running: `which whisper`
+		- If whisper is not found, notify the user to install it with: `uv tool install openai-whisper`
+		- Create output directory: `DEBRIEF_OUTPUT_DIR/<date_time>/`
+		  - `date_time` is the current date and time in the format YYYY-MM-DD_HH-MM-SS
+		- Transcribe the audio file using: `whisper "[[FILE_PATH]]" --model tiny --language en --output_format txt --output_dir DEBRIEF_OUTPUT_DIR/`
+		  - The `--model tiny` is fast and suitable for English transcription
+		  - You can use `--model base` or `--model small` for better accuracy if needed
+		  - The transcription will generate a .txt file in the output directory
+		  - IMPORTANT: Run this command with a 5 minute timeout. If it doesn't finish, notify the user and stop.
+		- Read the generated transcript file (it will have the same base name as the audio file but with .txt extension)
+		- Read the generated transcript file
+		- Determine the current date and quarter (Q1: Jan-Mar, Q2: Apr-Jun, Q3: Jul-Sep, Q4: Oct-Dec)
+		- Analyze the transcript to identify all engineering ideas and priorities mentioned
+		- Extract the top 3 most important priorities from the discussion
+		- List all key ideas concisely, focusing on actionable engineering concepts
+		- Generate novel extensions by:
+		  - Combining related ideas in new ways
+		  - Identifying potential optimizations or improvements
+		  - Suggesting complementary features or approaches
+		  - Proposing innovative solutions based on the discussed concepts
+		  - Extrapolate from the key ideas to add your own tasteful extensions
+		  - Push the ideas further based on your own experience and knowledge
+		- Structure the output with clear sections and bullet points for readability
+		- Keep descriptions concise but informative
+		- Focus on actionable aspects
+		- IMPORTANT: Output your results in a new markdown file in the output directory: `DEBRIEF_OUTPUT_DIR/<date_time>/debrief_<QN>_<3 letter month>_<2 digit day>_<4 digit year>.md`
+		- Copy the original audio file to the output directory for reference: `cp AUDIO_FILE_PATH DEBRIEF_OUTPUT_DIR/<date_time>/original_audio.<ext>`
+		- IMPORTANT: Once you finish, open the new file with `code DEBRIEF_OUTPUT_DIR/<date_time>/debrief_<QN>_<3 letter month>_<2 digit day>_<4 digit year>.md`
+		- Ultra Think as you work through this process.
+		- When finished, move the original audio file to the archive: `mv AUDIO_FILE_PATH DEBRIEF_ARCHIVE_DIR/`
+		
+		## Output Structure
+		The analysis should be formatted as follows:
+		1. **Title** - A descriptive title based on the debrief content
+		2. **Date** - Current date with quarter (e.g., "2025-01-29 (Q1 2025)")
+		3. **Top 3 Priorities** - Numbered list of the most important items
+		4. **Key Ideas** - Bulleted list of all ideas from the transcript
+		5. **Extensions** - Novel ideas derived from the key ideas
+		6. **Leading Questions** - Questions to guide today's work with potential answers
+		7. **Transcript** - Full transcript with each sentence as a bullet point]]></file>
+	<file path='.claude/commands/prime.md'><![CDATA[
+		# Prime
+		
+		Understand the files in the `Read` section, and execute the `Run` commands then `Report` your findings.
+		
+		## Read
+		
+		- README.md
+		- sfs_agentic_drop_zone.py
+		- drops.yaml
+		- .claude/commands/
+		
+		## Execute
+		
+		git ls-files
+		
+		## Report
+		
+		Report your understanding of this codebase in this format:
+		
+		For each file, report the following:
+		`<File Name> - <File Description>`
+		
+		Then provide an overall summary of the codebase.]]></file>
+	<file path='.gemini/settings.json.sample'><![CDATA[
+		{
+		  "mcpServers": {
+		    "replicate": {
+		      "command": "npx",
+		      "args": [
+		        "-y",
+		        "replicate-mcp"
+		      ],
+		      "env": {
+		        "REPLICATE_API_TOKEN": "<REPLICATE_API_TOKEN>"
+		      }
+		    }
+		  }
+		}]]></file>
+	<file path='.gitignore'>
+		adw/
+		*zone/
+		*.pyc
+		*.pyo
+		*.pyd
+		*.pyw
+		*.pyz
+		*.pywz
+		*.pyzw
+		.env
+		.mcp.json
+		!sfs_agentic_drop_zone.py
+		output/
+		.DS_Store
+		
+		**private/
+		.gemini/settings.json
+		.codex/settings.json</file>
+	<file path='.mcp.json.sample'><![CDATA[
+		{
+		  "mcpServers": {
+		    "replicate": {
+		      "command": "npx",
+		      "args": ["-y", "replicate-mcp"],
+		      "env": {
+		        "REPLICATE_API_TOKEN": "<your-replicate-api-token>"
+		      }
+		    }
+		  }
+		}]]></file>
+	<file path='ai_docs/ai_docs.md'>
+		# Agentic Drop Zone Documentation
+		
+		## Reference Links
+		- https://docs.anthropic.com/en/docs/claude-code/sdk/sdk-python
+		- https://github.com/gorakhargosh/watchdog?tab=readme-ov-file#example-api-usage
+		- https://pythonhosted.org/watchdog/api.html
+		- https://docs.astral.sh/uv/guides/scripts/#next-steps
+		- https://replicate.com/docs/reference/mcp
+		- https://docs.astral.sh/uv/guides/scripts/#running-a-script-with-dependencies
+		- https://docs.astral.sh/uv
+		- https://github.com/openai/whisper
+		- https://github.com/openai/openai-python
+		
+		## Recent Updates
+		
+		### Rich Console Output
+		Integrated Rich library for beautiful console output:
+		- Claude Code responses displayed in individual styled panels as content streams in
+		- Each response block appears in its own panel with title and subtitle
+		- Color-coded file system events (create, modify, delete, move)
+		- Structured logging with icons and color formatting
+		- Clean, segmented display of streaming responses
+		
+		### MCP Server Integration Support
+		Added support for Model Context Protocol (MCP) servers through the `mcp_server_file` field in drop zone configuration. This allows integration with external tools and services. The file path is passed directly to ClaudeCodeOptions, which handles loading the configuration.
+		
+		### PromptArgs Type System
+		Introduced a structured `PromptArgs` Pydantic model to manage prompt-related arguments cleanly:
+		- `reusable_prompt`: Path to the reusable prompt file
+		- `file_path`: Path to the file being processed  
+		- `model`: Optional model specification
+		- `mcp_server_file`: Optional path to MCP server configuration file
+		
+		### Configuration Schema Updates
+		The `DropZone` model now includes:
+		- `mcp_server_file`: Optional path to MCP server configuration file (JSON or YAML)
+		
+		Example configuration:
+		```yaml
+		drop_zones:
+		  - name: "Advanced Zone"
+		    file_patterns: ["*.py"]
+		    reusable_prompt: ".claude/commands/analyze.md"
+		    zone_dirs: ["src/"]
+		    events: ["created", "modified"]
+		    agent: "claude_code"
+		    model: "sonnet"
+		    mcp_server_file: ".mcp/servers.json"  # New field for MCP integration
+		```
+		
+		### MCP Server File Format
+		MCP server files can be in JSON or YAML format. The ClaudeCodeOptions class handles loading these files automatically:
+		
+		```json
+		{
+		  "database": {
+		    "command": "npx",
+		    "args": ["-y", "@modelcontextprotocol/server-postgres"],
+		    "env": {"DATABASE_URL": "postgresql://localhost:5432/mydb"}
+		  }
+		}
+		```
+		
+		### Implementation Notes
+		- The `mcp_server_file` path is passed directly to `ClaudeCodeOptions` as the `mcp_servers` parameter
+		- ClaudeCodeOptions natively supports file paths (`dict | str | Path`) for MCP configurations
+		- No manual file parsing is required - the SDK handles JSON/YAML loading internally
+		
+		### Visual Output Features
+		The application now uses Rich console for enhanced visual feedback:
+		
+		#### File System Events
+		- ✨ Green for file creation
+		- 📝 Yellow for file modification  
+		- 🗑️ Red for file deletion
+		- 📦 Blue for file moves
+		
+		#### Claude Code Response Panel
+		- Displays responses in a styled panel with cyan border
+		- Shows "🤖 Claude Code" as the title
+		- Includes the processing file name as subtitle
+		- Live streaming updates as the response arrives
+		- Clean padding and formatting for readability
+		
+		#### Status Messages
+		- 🚀 Startup banner with application name
+		- ✅ Green confirmation for started monitors
+		- 🎯 Cyan summary of active observers
+		- 🛑 Yellow stop notifications
+		- ⚡ Keyboard interrupt handling</file>
+	<file path='ai_docs/astral-uv-single-file-scripts.md'><![CDATA[
+		Guides
+		Running scripts
+		A Python script is a file intended for standalone execution, e.g., with python <script>.py. Using uv to execute scripts ensures that script dependencies are managed without manually managing environments.
+		
+		Note
+		
+		If you are not familiar with Python environments: every Python installation has an environment that packages can be installed in. Typically, creating virtual environments is recommended to isolate packages required by each script. uv automatically manages virtual environments for you and prefers a declarative approach to dependencies.
+		
+		Running a script without dependencies
+		If your script has no dependencies, you can execute it with uv run:
+		
+		example.py
+		
+		print("Hello world")
+		
+		uv run example.py
+		
+		Similarly, if your script depends on a module in the standard library, there's nothing more to do:
+		
+		example.py
+		
+		import os
+		
+		print(os.path.expanduser("~"))
+		
+		uv run example.py
+		
+		Arguments may be provided to the script:
+		
+		example.py
+		
+		import sys
+		
+		print(" ".join(sys.argv[1:]))
+		
+		uv run example.py test
+		
+		
+		uv run example.py hello world!
+		
+		Additionally, your script can be read directly from stdin:
+		
+		
+		echo 'print("hello world!")' | uv run -
+		Or, if your shell supports here-documents:
+		
+		
+		uv run - <<EOF
+		print("hello world!")
+		EOF
+		Note that if you use uv run in a project, i.e., a directory with a pyproject.toml, it will install the current project before running the script. If your script does not depend on the project, use the --no-project flag to skip this:
+		
+		
+		# Note: the `--no-project` flag must be provided _before_ the script name.
+		uv run --no-project example.py
+		See the projects guide for more details on working in projects.
+		
+		Running a script with dependencies
+		When your script requires other packages, they must be installed into the environment that the script runs in. uv prefers to create these environments on-demand instead of using a long-lived virtual environment with manually managed dependencies. This requires explicit declaration of dependencies that are required for the script. Generally, it's recommended to use a project or inline metadata to declare dependencies, but uv supports requesting dependencies per invocation as well.
+		
+		For example, the following script requires rich.
+		
+		example.py
+		
+		import time
+		from rich.progress import track
+		
+		for i in track(range(20), description="For example:"):
+		    time.sleep(0.05)
+		If executed without specifying a dependency, this script will fail:
+		
+		
+		uv run --no-project example.py
+		
+		
+		
+		
+		Request the dependency using the --with option:
+		
+		
+		uv run --with rich example.py
+		
+		Constraints can be added to the requested dependency if specific versions are needed:
+		
+		
+		uv run --with 'rich>12,<13' example.py
+		Multiple dependencies can be requested by repeating with --with option.
+		
+		Note that if uv run is used in a project, these dependencies will be included in addition to the project's dependencies. To opt-out of this behavior, use the --no-project flag.
+		
+		Creating a Python script
+		Python recently added a standard format for inline script metadata. It allows for selecting Python versions and defining dependencies. Use uv init --script to initialize scripts with the inline metadata:
+		
+		
+		uv init --script example.py --python 3.12
+		Declaring script dependencies
+		The inline metadata format allows the dependencies for a script to be declared in the script itself.
+		
+		uv supports adding and updating inline script metadata for you. Use uv add --script to declare the dependencies for the script:
+		
+		
+		uv add --script example.py 'requests<3' 'rich'
+		This will add a script section at the top of the script declaring the dependencies using TOML:
+		
+		example.py
+		
+		# /// script
+		# dependencies = [
+		#   "requests<3",
+		#   "rich",
+		# ]
+		# ///
+		
+		import requests
+		from rich.pretty import pprint
+		
+		resp = requests.get("https://peps.python.org/api/peps.json")
+		data = resp.json()
+		pprint([(k, v["title"]) for k, v in data.items()][:10])
+		uv will automatically create an environment with the dependencies necessary to run the script, e.g.:
+		
+		
+		uv run example.py
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		Important
+		
+		When using inline script metadata, even if uv run is used in a project, the project's dependencies will be ignored. The --no-project flag is not required.
+		
+		uv also respects Python version requirements:
+		
+		example.py
+		
+		# /// script
+		# requires-python = ">=3.12"
+		# dependencies = []
+		# ///
+		
+		# Use some syntax added in Python 3.12
+		type Point = tuple[float, float]
+		print(Point)
+		Note
+		
+		The dependencies field must be provided even if empty.
+		
+		uv run will search for and use the required Python version. The Python version will download if it is not installed — see the documentation on Python versions for more details.
+		
+		Using a shebang to create an executable file
+		A shebang can be added to make a script executable without using uv run — this makes it easy to run scripts that are on your PATH or in the current folder.
+		
+		For example, create a file called greet with the following contents
+		
+		greet
+		
+		#!/usr/bin/env -S uv run --script
+		
+		print("Hello, world!")
+		Ensure that your script is executable, e.g., with chmod +x greet, then run the script:
+		
+		
+		./greet
+		
+		Declaration of dependencies is also supported in this context, for example:
+		
+		example
+		
+		#!/usr/bin/env -S uv run --script
+		#
+		# /// script
+		# requires-python = ">=3.12"
+		# dependencies = ["httpx"]
+		# ///
+		
+		import httpx
+		
+		print(httpx.get("https://example.com"))
+		Using alternative package indexes
+		If you wish to use an alternative package index to resolve dependencies, you can provide the index with the --index option:
+		
+		
+		uv add --index "https://example.com/simple" --script example.py 'requests<3' 'rich'
+		This will include the package data in the inline metadata:
+		
+		
+		# [[tool.uv.index]]
+		# url = "https://example.com/simple"
+		If you require authentication to access the package index, then please refer to the package index documentation.
+		
+		Locking dependencies
+		uv supports locking dependencies for PEP 723 scripts using the uv.lock file format. Unlike with projects, scripts must be explicitly locked using uv lock:
+		
+		
+		uv lock --script example.py
+		Running uv lock --script will create a .lock file adjacent to the script (e.g., example.py.lock).
+		
+		Once locked, subsequent operations like uv run --script, uv add --script, uv export --script, and uv tree --script will reuse the locked dependencies, updating the lockfile if necessary.
+		
+		If no such lockfile is present, commands like uv export --script will still function as expected, but will not create a lockfile.
+		
+		Improving reproducibility
+		In addition to locking dependencies, uv supports an exclude-newer field in the tool.uv section of inline script metadata to limit uv to only considering distributions released before a specific date. This is useful for improving the reproducibility of your script when run at a later point in time.
+		
+		The date must be specified as an RFC 3339 timestamp (e.g., 2006-12-02T02:07:43Z).
+		
+		example.py
+		
+		# /// script
+		# dependencies = [
+		#   "requests",
+		# ]
+		# [tool.uv]
+		# exclude-newer = "2023-10-16T00:00:00Z"
+		# ///
+		
+		import requests
+		
+		print(requests.__version__)
+		Using different Python versions
+		uv allows arbitrary Python versions to be requested on each script invocation, for example:
+		
+		example.py
+		
+		import sys
+		
+		print(".".join(map(str, sys.version_info[:3])))
+		
+		# Use the default Python version, may differ on your machine
+		uv run example.py
+		
+		
+		# Use a specific Python version
+		uv run --python 3.10 example.py
+		
+		See the Python version request documentation for more details on requesting Python versions.
+		
+		Using GUI scripts
+		On Windows uv will run your script ending with .pyw extension using pythonw:
+		
+		example.pyw
+		
+		from tkinter import Tk, ttk
+		
+		root = Tk()
+		root.title("uv")
+		frm = ttk.Frame(root, padding=10)
+		frm.grid()
+		ttk.Label(frm, text="Hello World").grid(column=0, row=0)
+		root.mainloop()
+		
+		
+		Run Result
+		
+		Similarly, it works with dependencies as well:
+		
+		example_pyqt.pyw
+		
+		import sys
+		from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QGridLayout
+		
+		app = QApplication(sys.argv)
+		widget = QWidget()
+		grid = QGridLayout()
+		
+		text_label = QLabel()
+		text_label.setText("Hello World!")
+		grid.addWidget(text_label)
+		
+		widget.setLayout(grid)
+		widget.setGeometry(100, 100, 200, 50)
+		widget.setWindowTitle("uv")
+		widget.show()
+		sys.exit(app.exec_())
+		
+		
+		Run Result
+		
+		Next steps
+		To learn more about uv run, see the command reference.
+		
+		Or, read on to learn how to run and install tools with uv.]]></file>
+	<file path='ai_docs/claude-code-python-sdk.md'><![CDATA[
+		# Python
+		
+		> Build custom AI agents with the Claude Code Python SDK
+		
+		## Prerequisites
+		
+		* Python 3.10+
+		* `claude-code-sdk` from PyPI
+		* Node.js 18+
+		* `@anthropic-ai/claude-code` from NPM
+		
+		<Note>
+		  To view the Python SDK source code, see the [`claude-code-sdk`](https://github.com/anthropics/claude-code-sdk-python) repo.
+		</Note>
+		
+		<Tip>
+		  For interactive development, use [IPython](https://ipython.org/): `pip install ipython`
+		</Tip>
+		
+		## Installation
+		
+		Install `claude-code-sdk` from PyPI and `@anthropic-ai/claude-code` from NPM:
+		
+		```bash
+		pip install claude-code-sdk
+		npm install -g @anthropic-ai/claude-code  # Required dependency
+		```
+		
+		(Optional) Install IPython for interactive development:
+		
+		```bash
+		pip install ipython
+		```
+		
+		## Quick start
+		
+		Create your first agent:
+		
+		```python
+		# legal-agent.py
+		import asyncio
+		from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
+		
+		async def main():
+		    async with ClaudeSDKClient(
+		        options=ClaudeCodeOptions(
+		            system_prompt="You are a legal assistant. Identify risks and suggest improvements.",
+		            max_turns=2
+		        )
+		    ) as client:
+		        # Send the query
+		        await client.query(
+		            "Review this contract clause for potential issues: 'The party agrees to unlimited liability...'"
+		        )
+		
+		        # Stream the response
+		        async for message in client.receive_response():
+		            if hasattr(message, 'content'):
+		                # Print streaming content as it arrives
+		                for block in message.content:
+		                    if hasattr(block, 'text'):
+		                        print(block.text, end='', flush=True)
+		
+		if __name__ == "__main__":
+		    asyncio.run(main())
+		```
+		
+		Save the code above as `legal-agent.py`, then run:
+		
+		```bash
+		python legal-agent.py
+		```
+		
+		For [IPython](https://ipython.org/)/Jupyter notebooks, you can run the code directly in a cell:
+		
+		```python
+		await main()
+		```
+		
+		<Note>
+		  The Python examples on this page use `asyncio`, but you can also use `anyio`.
+		</Note>
+		
+		## Basic usage
+		
+		The Python SDK provides two primary interfaces:
+		
+		### 1. The `ClaudeSDKClient` class (recommended)
+		
+		Best for streaming responses, multi-turn conversations, and interactive applications:
+		
+		```python
+		import asyncio
+		from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
+		
+		async def main():
+		    async with ClaudeSDKClient(
+		        options=ClaudeCodeOptions(
+		            system_prompt="You are a performance engineer",
+		            allowed_tools=["Bash", "Read", "WebSearch"],
+		            max_turns=5
+		        )
+		    ) as client:
+		        await client.query("Analyze system performance")
+		
+		        # Stream responses
+		        async for message in client.receive_response():
+		            if hasattr(message, 'content'):
+		                for block in message.content:
+		                    if hasattr(block, 'text'):
+		                        print(block.text, end='', flush=True)
+		
+		# Run as script
+		asyncio.run(main())
+		
+		# Or in IPython/Jupyter: await main()
+		```
+		
+		### 2. The `query` function
+		
+		For simple, one-shot queries:
+		
+		```python
+		from claude_code_sdk import query, ClaudeCodeOptions
+		
+		async for message in query(
+		    prompt="Analyze system performance",
+		    options=ClaudeCodeOptions(system_prompt="You are a performance engineer")
+		):
+		    if type(message).__name__ == "ResultMessage":
+		        print(message.result)
+		```
+		
+		## Configuration options
+		
+		The Python SDK accepts all arguments supported by the [command line](/en/docs/claude-code/cli-reference) through the `ClaudeCodeOptions` class.
+		
+		### ClaudeCodeOptions parameters
+		
+		```python
+		from claude_code_sdk import ClaudeCodeOptions
+		
+		options = ClaudeCodeOptions(
+		    # Core configuration
+		    system_prompt="You are a helpful assistant",
+		    append_system_prompt="Additional system instructions",
+		    max_turns=5,
+		    model="claude-3-5-sonnet-20241022",
+		    max_thinking_tokens=8000,
+		    
+		    # Tool management
+		    allowed_tools=["Bash", "Read", "Write"],
+		    disallowed_tools=["WebSearch"],
+		    
+		    # Session management
+		    continue_conversation=False,
+		    resume="session-uuid",
+		    
+		    # Environment
+		    cwd="/path/to/working/directory",
+		    add_dirs=["/additional/context/dir"],
+		    settings="/path/to/settings.json",
+		    
+		    # Permissions
+		    permission_mode="acceptEdits",  # "default", "acceptEdits", "plan", "bypassPermissions"
+		    permission_prompt_tool_name="mcp__approval_tool",
+		    
+		    # MCP integration
+		    mcp_servers={
+		        "my_server": {
+		            "command": "npx",
+		            "args": ["-y", "@modelcontextprotocol/server-example"],
+		            "env": {"API_KEY": "your-key"}
+		        }
+		    },
+		    
+		    # Advanced
+		    extra_args={"--verbose": None, "--custom-flag": "value"}
+		)
+		```
+		
+		#### Parameter details
+		
+		* **`system_prompt`**: `str | None` - Custom system prompt defining the agent's role
+		* **`append_system_prompt`**: `str | None` - Additional text appended to system prompt
+		* **`max_turns`**: `int | None` - Maximum conversation turns (unlimited if None)
+		* **`model`**: `str | None` - Specific Claude model to use
+		* **`max_thinking_tokens`**: `int` - Maximum tokens for Claude's thinking process (default: 8000)
+		* **`allowed_tools`**: `list[str]` - Tools specifically allowed for use
+		* **`disallowed_tools`**: `list[str]` - Tools that should not be used
+		* **`continue_conversation`**: `bool` - Continue most recent conversation (default: False)
+		* **`resume`**: `str | None` - Session UUID to resume specific conversation
+		* **`cwd`**: `str | Path | None` - Working directory for the session
+		* **`add_dirs`**: `list[str | Path]` - Additional directories to include in context
+		* **`settings`**: `str | None` - Path to settings file or settings JSON string
+		* **`permission_mode`**: `str | None` - Permission handling mode
+		* **`permission_prompt_tool_name`**: `str | None` - Custom permission prompt tool name
+		* **`mcp_servers`**: `dict | str | Path` - MCP server configurations
+		* **`extra_args`**: `dict[str, str | None]` - Pass arbitrary CLI flags to underlying Claude Code CLI
+		
+		#### Permission modes
+		
+		* **`"default"`**: CLI prompts for dangerous tools (default behavior)
+		* **`"acceptEdits"`**: Automatically accept file edits without prompting
+		* **`"plan"`**: Plan Mode - analyze without making changes
+		* **`"bypassPermissions"`**: Allow all tools without prompting (use with caution)
+		
+		### Advanced configuration example
+		
+		```python
+		import asyncio
+		from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
+		
+		async def advanced_agent():
+		    """Example showcasing advanced configuration options"""
+		    
+		    async with ClaudeSDKClient(
+		        options=ClaudeCodeOptions(
+		            # Custom working directory and additional context
+		            cwd="/project/root",
+		            add_dirs=["/shared/libs", "/common/utils"],
+		            
+		            # Model and thinking configuration
+		            model="claude-3-5-sonnet-20241022",
+		            max_thinking_tokens=12000,
+		            
+		            # Advanced tool control
+		            allowed_tools=["Read", "Write", "Bash", "Grep"],
+		            disallowed_tools=["WebSearch", "Bash(rm*)"],
+		            
+		            # Custom settings and CLI args
+		            settings='{"editor": "vim", "theme": "dark"}',
+		            extra_args={
+		                "--verbose": None,
+		                "--timeout": "300"
+		            }
+		        )
+		    ) as client:
+		        await client.query("Analyze the codebase structure")
+		        
+		        async for message in client.receive_response():
+		            if hasattr(message, 'content'):
+		                for block in message.content:
+		                    if hasattr(block, 'text'):
+		                        print(block.text, end='', flush=True)
+		
+		asyncio.run(advanced_agent())
+		```
+		
+		## Structured messages and image inputs
+		
+		The SDK supports passing structured messages and image inputs:
+		
+		```python
+		from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
+		
+		async with ClaudeSDKClient() as client:
+		    # Text message
+		    await client.query("Analyze this code for security issues")
+		
+		    # Message with image reference (image will be read by Claude's Read tool)
+		    await client.query("Explain what's shown in screenshot.png")
+		
+		    # Multiple messages in sequence
+		    messages = [
+		        "First, analyze the architecture diagram in diagram.png",
+		        "Now suggest improvements based on the diagram",
+		        "Finally, generate implementation code"
+		    ]
+		
+		    for msg in messages:
+		        await client.query(msg)
+		        async for response in client.receive_response():
+		            # Process each response
+		            pass
+		
+		# The SDK handles image files through Claude's built-in Read tool
+		# Supported formats: PNG, JPG, PDF, and other common formats
+		```
+		
+		## Multi-turn conversations
+		
+		### Method 1: Using ClaudeSDKClient for persistent conversations
+		
+		```python
+		import asyncio
+		from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions, query
+		
+		# Method 1: Using ClaudeSDKClient for persistent conversations
+		async def multi_turn_conversation():
+		    async with ClaudeSDKClient() as client:
+		        # First query
+		        await client.query("Let's refactor the payment module")
+		        async for msg in client.receive_response():
+		            # Process first response
+		            pass
+		
+		        # Continue in same session
+		        await client.query("Now add comprehensive error handling")
+		        async for msg in client.receive_response():
+		            # Process continuation
+		            pass
+		
+		        # The conversation context is maintained throughout
+		
+		# Method 2: Using query function with session management
+		async def resume_session():
+		    # Continue most recent conversation
+		    async for message in query(
+		        prompt="Now refactor this for better performance",
+		        options=ClaudeCodeOptions(continue_conversation=True)
+		    ):
+		        if type(message).__name__ == "ResultMessage":
+		            print(message.result)
+		
+		    # Resume specific session
+		    async for message in query(
+		        prompt="Update the tests",
+		        options=ClaudeCodeOptions(
+		            resume="550e8400-e29b-41d4-a716-446655440000",
+		            max_turns=3
+		        )
+		    ):
+		        if type(message).__name__ == "ResultMessage":
+		            print(message.result)
+		
+		# Run the examples
+		asyncio.run(multi_turn_conversation())
+		```
+		
+		## Custom system prompts
+		
+		System prompts define your agent's role, expertise, and behavior:
+		
+		```python
+		import asyncio
+		from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
+		
+		async def specialized_agents():
+		    # SRE incident response agent with streaming
+		    async with ClaudeSDKClient(
+		        options=ClaudeCodeOptions(
+		            system_prompt="You are an SRE expert. Diagnose issues systematically and provide actionable solutions.",
+		            max_turns=3
+		        )
+		    ) as sre_agent:
+		        await sre_agent.query("API is down, investigate")
+		
+		        # Stream the diagnostic process
+		        async for message in sre_agent.receive_response():
+		            if hasattr(message, 'content'):
+		                for block in message.content:
+		                    if hasattr(block, 'text'):
+		                        print(block.text, end='', flush=True)
+		
+		    # Legal review agent with custom prompt
+		    async with ClaudeSDKClient(
+		        options=ClaudeCodeOptions(
+		            append_system_prompt="Always include comprehensive error handling and unit tests.",
+		            max_turns=2
+		        )
+		    ) as dev_agent:
+		        await dev_agent.query("Refactor this function")
+		
+		        # Collect full response
+		        full_response = []
+		        async for message in dev_agent.receive_response():
+		            if type(message).__name__ == "ResultMessage":
+		                print(message.result)
+		
+		asyncio.run(specialized_agents())
+		```
+		
+		## Custom tools via MCP
+		
+		The Model Context Protocol (MCP) lets you give your agents custom tools and capabilities:
+		
+		```python
+		import asyncio
+		from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
+		
+		async def mcp_enabled_agent():
+		    # Legal agent with document access and streaming
+		    # Note: Configure your MCP servers as needed
+		    mcp_servers = {
+		        # Example configuration - uncomment and configure as needed:
+		        # "docusign": {
+		        #     "command": "npx",
+		        #     "args": ["-y", "@modelcontextprotocol/server-docusign"],
+		        #     "env": {"API_KEY": "your-key"}
+		        # }
+		    }
+		
+		    async with ClaudeSDKClient(
+		        options=ClaudeCodeOptions(
+		            mcp_servers=mcp_servers,
+		            allowed_tools=["mcp__docusign", "mcp__compliance_db"],
+		            system_prompt="You are a corporate lawyer specializing in contract review.",
+		            max_turns=4
+		        )
+		    ) as client:
+		        await client.query("Review this contract for compliance risks")
+		
+		        # Monitor tool usage and responses
+		        async for message in client.receive_response():
+		            if hasattr(message, 'content'):
+		                for block in message.content:
+		                    if hasattr(block, 'type'):
+		                        if block.type == 'tool_use':
+		                            print(f"\n[Using tool: {block.name}]\n")
+		                        elif hasattr(block, 'text'):
+		                            print(block.text, end='', flush=True)
+		                    elif hasattr(block, 'text'):
+		                        print(block.text, end='', flush=True)
+		
+		            if type(message).__name__ == "ResultMessage":
+		                print(f"\n\nReview complete. Total cost: ${message.total_cost_usd:.4f}")
+		
+		asyncio.run(mcp_enabled_agent())
+		```
+		
+		## Custom permission prompt tool
+		
+		Implement custom permission handling for tool calls:
+		
+		```python
+		import asyncio
+		from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
+		
+		async def use_permission_prompt():
+		    """Example using custom permission prompt tool"""
+		
+		    # MCP server configuration
+		    mcp_servers = {
+		        # Example configuration - uncomment and configure as needed:
+		        # "security": {
+		        #     "command": "npx",
+		        #     "args": ["-y", "@modelcontextprotocol/server-security"],
+		        #     "env": {"API_KEY": "your-key"}
+		        # }
+		    }
+		
+		    async with ClaudeSDKClient(
+		        options=ClaudeCodeOptions(
+		            permission_prompt_tool_name="mcp__security__approval_prompt",  # Changed from permission_prompt_tool
+		            mcp_servers=mcp_servers,
+		            allowed_tools=["Read", "Grep"],
+		            disallowed_tools=["Bash(rm*)", "Write"],
+		            system_prompt="You are a security auditor"
+		        )
+		    ) as client:
+		        await client.query("Analyze and fix the security issues")
+		
+		        # Monitor tool usage and permissions
+		        async for message in client.receive_response():
+		            if hasattr(message, 'content'):
+		                for block in message.content:
+		                    if hasattr(block, 'type'):  # Added check for 'type' attribute
+		                        if block.type == 'tool_use':
+		                            print(f"[Tool: {block.name}] ", end='')
+		                    if hasattr(block, 'text'):
+		                        print(block.text, end='', flush=True)
+		
+		            # Check for permission denials in error messages
+		            if type(message).__name__ == "ErrorMessage":
+		                if hasattr(message, 'error') and "Permission denied" in str(message.error):
+		                    print(f"\n⚠️ Permission denied: {message.error}")
+		
+		# Example MCP server implementation (Python)
+		# This would be in your MCP server code
+		async def approval_prompt(tool_name: str, input: dict, tool_use_id: str = None):
+		    """Custom permission prompt handler"""
+		    # Your custom logic here
+		    if "allow" in str(input):
+		        return json.dumps({
+		            "behavior": "allow",
+		            "updatedInput": input
+		        })
+		    else:
+		        return json.dumps({
+		            "behavior": "deny",
+		            "message": f"Permission denied for {tool_name}"
+		        })
+		
+		asyncio.run(use_permission_prompt())
+		```
+		
+		## Output formats
+		
+		### Text output with streaming
+		
+		```python
+		# Default text output with streaming
+		async with ClaudeSDKClient() as client:
+		    await client.query("Explain file src/components/Header.tsx")
+		
+		    # Stream text as it arrives
+		    async for message in client.receive_response():
+		        if hasattr(message, 'content'):
+		            for block in message.content:
+		                if hasattr(block, 'text'):
+		                    print(block.text, end='', flush=True)
+		                    # Output streams in real-time: This is a React component showing...
+		```
+		
+		### JSON output with metadata
+		
+		```python
+		# Collect all messages with metadata
+		async with ClaudeSDKClient() as client:
+		    await client.query("How does the data layer work?")
+		
+		    messages = []
+		    result_data = None
+		
+		    async for message in client.receive_messages():
+		        messages.append(message)
+		
+		        # Capture result message with metadata
+		        if type(message).__name__ == "ResultMessage":
+		            result_data = {
+		                "result": message.result,
+		                "cost": message.total_cost_usd,
+		                "duration": message.duration_ms,
+		                "num_turns": message.num_turns,
+		                "session_id": message.session_id
+		            }
+		            break
+		
+		    print(result_data)
+		```
+		
+		## Input formats
+		
+		```python
+		import asyncio
+		from claude_code_sdk import ClaudeSDKClient
+		
+		async def process_inputs():
+		    async with ClaudeSDKClient() as client:
+		        # Text input
+		        await client.query("Explain this code")
+		        async for message in client.receive_response():
+		            # Process streaming response
+		            pass
+		
+		        # Image input (Claude will use Read tool automatically)
+		        await client.query("What's in this diagram? screenshot.png")
+		        async for message in client.receive_response():
+		            # Process image analysis
+		            pass
+		
+		        # Multiple inputs with mixed content
+		        inputs = [
+		            "Analyze the architecture in diagram.png",
+		            "Compare it with best practices",
+		            "Generate improved version"
+		        ]
+		
+		        for prompt in inputs:
+		            await client.query(prompt)
+		            async for message in client.receive_response():
+		                # Process each response
+		                pass
+		
+		asyncio.run(process_inputs())
+		```
+		
+		## Agent integration examples
+		
+		### SRE incident response agent
+		
+		```python
+		import asyncio
+		from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
+		
+		async def investigate_incident(incident_description: str, severity: str = "medium"):
+		    """Automated incident response agent with real-time streaming"""
+		
+		    # MCP server configuration for monitoring tools
+		    mcp_servers = {
+		        # Example configuration - uncomment and configure as needed:
+		        # "datadog": {
+		        #     "command": "npx",
+		        #     "args": ["-y", "@modelcontextprotocol/server-datadog"],
+		        #     "env": {"API_KEY": "your-datadog-key", "APP_KEY": "your-app-key"}
+		        # }
+		    }
+		
+		    async with ClaudeSDKClient(
+		        options=ClaudeCodeOptions(
+		            system_prompt="You are an SRE expert. Diagnose issues systematically and provide actionable solutions.",
+		            max_turns=6,
+		            allowed_tools=["Bash", "Read", "WebSearch", "mcp__datadog"],
+		            mcp_servers=mcp_servers
+		        )
+		    ) as client:
+		        # Send the incident details
+		        prompt = f"Incident: {incident_description} (Severity: {severity})"
+		        print(f"🚨 Investigating: {prompt}\n")
+		        await client.query(prompt)
+		
+		        # Stream the investigation process
+		        investigation_log = []
+		        async for message in client.receive_response():
+		            if hasattr(message, 'content'):
+		                for block in message.content:
+		                    if hasattr(block, 'type'):
+		                        if block.type == 'tool_use':
+		                            print(f"[{block.name}] ", end='')
+		                    if hasattr(block, 'text'):
+		                        text = block.text
+		                        print(text, end='', flush=True)
+		                        investigation_log.append(text)
+		
+		            # Capture final result
+		            if type(message).__name__ == "ResultMessage":
+		                return {
+		                    'analysis': ''.join(investigation_log),
+		                    'cost': message.total_cost_usd,
+		                    'duration_ms': message.duration_ms
+		                }
+		
+		# Usage
+		result = await investigate_incident("Payment API returning 500 errors", "high")
+		print(f"\n\nInvestigation complete. Cost: ${result['cost']:.4f}")
+		```
+		
+		### Automated security review
+		
+		```python
+		import subprocess
+		import asyncio
+		import json
+		from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
+		
+		async def audit_pr(pr_number: int):
+		    """Security audit agent for pull requests with streaming feedback"""
+		    # Get PR diff
+		    pr_diff = subprocess.check_output(
+		        ["gh", "pr", "diff", str(pr_number)],
+		        text=True
+		    )
+		
+		    async with ClaudeSDKClient(
+		        options=ClaudeCodeOptions(
+		            system_prompt="You are a security engineer. Review this PR for vulnerabilities, insecure patterns, and compliance issues.",
+		            max_turns=3,
+		            allowed_tools=["Read", "Grep", "WebSearch"]
+		        )
+		    ) as client:
+		        print(f"🔍 Auditing PR #{pr_number}\n")
+		        await client.query(pr_diff)
+		
+		        findings = []
+		        async for message in client.receive_response():
+		            if hasattr(message, 'content'):
+		                for block in message.content:
+		                    if hasattr(block, 'text'):
+		                        # Stream findings as they're discovered
+		                        print(block.text, end='', flush=True)
+		                        findings.append(block.text)
+		
+		            if type(message).__name__ == "ResultMessage":
+		                return {
+		                    'pr_number': pr_number,
+		                    'findings': ''.join(findings),
+		                    'metadata': {
+		                        'cost': message.total_cost_usd,
+		                        'duration': message.duration_ms,
+		                        'severity': 'high' if 'vulnerability' in ''.join(findings).lower() else 'medium'
+		                    }
+		                }
+		
+		# Usage
+		report = await audit_pr(123)
+		print(f"\n\nAudit complete. Severity: {report['metadata']['severity']}")
+		print(json.dumps(report, indent=2))
+		```
+		
+		### Multi-turn legal assistant
+		
+		```python
+		import asyncio
+		from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
+		
+		async def legal_review():
+		    """Legal document review with persistent session and streaming"""
+		
+		    async with ClaudeSDKClient(
+		        options=ClaudeCodeOptions(
+		            system_prompt="You are a corporate lawyer. Provide detailed legal analysis.",
+		            max_turns=2
+		        )
+		    ) as client:
+		        # Multi-step review in same session
+		        steps = [
+		            "Review contract.pdf for liability clauses",
+		            "Check compliance with GDPR requirements",
+		            "Generate executive summary of risks"
+		        ]
+		
+		        review_results = []
+		
+		        for step in steps:
+		            print(f"\n📋 {step}\n")
+		            await client.query(step)
+		
+		            step_result = []
+		            async for message in client.receive_response():
+		                if hasattr(message, 'content'):
+		                    for block in message.content:
+		                        if hasattr(block, 'text'):
+		                            text = block.text
+		                            print(text, end='', flush=True)
+		                            step_result.append(text)
+		
+		                if type(message).__name__ == "ResultMessage":
+		                    review_results.append({
+		                        'step': step,
+		                        'analysis': ''.join(step_result),
+		                        'cost': message.total_cost_usd
+		                    })
+		
+		        # Summary
+		        total_cost = sum(r['cost'] for r in review_results)
+		        print(f"\n\n✅ Legal review complete. Total cost: ${total_cost:.4f}")
+		        return review_results
+		
+		# Usage
+		results = await legal_review()
+		```
+		
+		## Python-specific best practices
+		
+		### Key patterns
+		
+		```python
+		import asyncio
+		from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
+		
+		# Always use context managers
+		async with ClaudeSDKClient() as client:
+		    await client.query("Analyze this code")
+		    async for msg in client.receive_response():
+		        # Process streaming messages
+		        pass
+		
+		# Run multiple agents concurrently
+		async with ClaudeSDKClient() as reviewer, ClaudeSDKClient() as tester:
+		    await asyncio.gather(
+		        reviewer.query("Review main.py"),
+		        tester.query("Write tests for main.py")
+		    )
+		
+		# Error handling
+		from claude_code_sdk import CLINotFoundError, ProcessError
+		
+		try:
+		    async with ClaudeSDKClient() as client:
+		        # Your code here
+		        pass
+		except CLINotFoundError:
+		    print("Install CLI: npm install -g @anthropic-ai/claude-code")
+		except ProcessError as e:
+		    print(f"Process error: {e}")
+		
+		# Collect full response with metadata
+		async def get_response(client, prompt):
+		    await client.query(prompt)
+		    text = []
+		    async for msg in client.receive_response():
+		        if hasattr(msg, 'content'):
+		            for block in msg.content:
+		                if hasattr(block, 'text'):
+		                    text.append(block.text)
+		        if type(msg).__name__ == "ResultMessage":
+		            return {'text': ''.join(text), 'cost': msg.total_cost_usd}
+		```
+		
+		### IPython/Jupyter tips
+		
+		```python
+		# In Jupyter, use await directly in cells
+		client = ClaudeSDKClient()
+		await client.connect()
+		await client.query("Analyze data.csv")
+		async for msg in client.receive_response():
+		    print(msg)
+		await client.disconnect()
+		
+		# Create reusable helper functions
+		async def stream_print(client, prompt):
+		    await client.query(prompt)
+		    async for msg in client.receive_response():
+		        if hasattr(msg, 'content'):
+		            for block in msg.content:
+		                if hasattr(block, 'text'):
+		                    print(block.text, end='', flush=True)
+		```
+		
+		## Related resources
+		
+		* [CLI usage and controls](/en/docs/claude-code/cli-reference) - Complete CLI documentation
+		* [GitHub Actions integration](/en/docs/claude-code/github-actions) - Automate your GitHub workflow with Claude
+		* [Common workflows](/en/docs/claude-code/common-workflows) - Step-by-step guides for common use cases]]></file>
+	<file path='ai_docs/watch-dog-python-docs.md'><![CDATA[
+		
+		Example API Usage
+		A simple program that uses watchdog to monitor directories specified as command-line arguments and logs events generated:
+		
+		import time
+		
+		from watchdog.events import FileSystemEvent, FileSystemEventHandler
+		from watchdog.observers import Observer
+		
+		
+		class MyEventHandler(FileSystemEventHandler):
+		    def on_any_event(self, event: FileSystemEvent) -> None:
+		        print(event)
+		
+		
+		event_handler = MyEventHandler()
+		observer = Observer()
+		observer.schedule(event_handler, ".", recursive=True)
+		observer.start()
+		try:
+		    while True:
+		        time.sleep(1)
+		finally:
+		    observer.stop()
+		    observer.join()
+		
+		
+		API Reference
+		watchdog.events
+		module:	watchdog.events
+		synopsis:	File system events and event handlers.
+		author:	yesudeep@google.com (Yesudeep Mangalapilly)
+		Event Classes
+		class watchdog.events.FileSystemEvent(src_path)[source]
+		Bases: object
+		
+		Immutable type that represents a file system event that is triggered when a change occurs on the monitored file system.
+		
+		All FileSystemEvent objects are required to be immutable and hence can be used as keys in dictionaries or be added to sets.
+		
+		event_type = None
+		The type of the event as a string.
+		
+		is_directory = False
+		True if event was emitted for a directory; False otherwise.
+		
+		src_path[source]
+		Source path of the file system object that triggered this event.
+		
+		class watchdog.events.FileSystemMovedEvent(src_path, dest_path)[source]
+		Bases: watchdog.events.FileSystemEvent
+		
+		File system event representing any kind of file system movement.
+		
+		dest_path[source]
+		The destination path of the move event.
+		
+		class watchdog.events.FileMovedEvent(src_path, dest_path)[source]
+		Bases: watchdog.events.FileSystemMovedEvent
+		
+		File system event representing file movement on the file system.
+		
+		class watchdog.events.DirMovedEvent(src_path, dest_path)[source]
+		Bases: watchdog.events.FileSystemMovedEvent
+		
+		File system event representing directory movement on the file system.
+		
+		class watchdog.events.FileModifiedEvent(src_path)[source]
+		Bases: watchdog.events.FileSystemEvent
+		
+		File system event representing file modification on the file system.
+		
+		class watchdog.events.DirModifiedEvent(src_path)[source]
+		Bases: watchdog.events.FileSystemEvent
+		
+		File system event representing directory modification on the file system.
+		
+		class watchdog.events.FileCreatedEvent(src_path)[source]
+		Bases: watchdog.events.FileSystemEvent
+		
+		File system event representing file creation on the file system.
+		
+		class watchdog.events.DirCreatedEvent(src_path)[source]
+		Bases: watchdog.events.FileSystemEvent
+		
+		File system event representing directory creation on the file system.
+		
+		class watchdog.events.FileDeletedEvent(src_path)[source]
+		Bases: watchdog.events.FileSystemEvent
+		
+		File system event representing file deletion on the file system.
+		
+		class watchdog.events.DirDeletedEvent(src_path)[source]
+		Bases: watchdog.events.FileSystemEvent
+		
+		File system event representing directory deletion on the file system.
+		
+		Event Handler Classes
+		class watchdog.events.FileSystemEventHandler[source]
+		Bases: object
+		
+		Base file system event handler that you can override methods from.
+		
+		dispatch(event)[source]
+		Dispatches events to the appropriate methods.
+		
+		Parameters:	event (FileSystemEvent) – The event object representing the file system event.
+		on_any_event(event)[source]
+		Catch-all event handler.
+		
+		Parameters:	event (FileSystemEvent) – The event object representing the file system event.
+		on_created(event)[source]
+		Called when a file or directory is created.
+		
+		Parameters:	event (DirCreatedEvent or FileCreatedEvent) – Event representing file/directory creation.
+		on_deleted(event)[source]
+		Called when a file or directory is deleted.
+		
+		Parameters:	event (DirDeletedEvent or FileDeletedEvent) – Event representing file/directory deletion.
+		on_modified(event)[source]
+		Called when a file or directory is modified.
+		
+		Parameters:	event (DirModifiedEvent or FileModifiedEvent) – Event representing file/directory modification.
+		on_moved(event)[source]
+		Called when a file or a directory is moved or renamed.
+		
+		Parameters:	event (DirMovedEvent or FileMovedEvent) – Event representing file/directory movement.
+		class watchdog.events.PatternMatchingEventHandler(patterns=None, ignore_patterns=None, ignore_directories=False, case_sensitive=False)[source]
+		Bases: watchdog.events.FileSystemEventHandler
+		
+		Matches given patterns with file paths associated with occurring events.
+		
+		case_sensitive[source]
+		(Read-only) True if path names should be matched sensitive to case; False otherwise.
+		
+		dispatch(event)[source]
+		Dispatches events to the appropriate methods.
+		
+		Parameters:	event (FileSystemEvent) – The event object representing the file system event.
+		ignore_directories[source]
+		(Read-only) True if directories should be ignored; False otherwise.
+		
+		ignore_patterns[source]
+		(Read-only) Patterns to ignore matching event paths.
+		
+		patterns[source]
+		(Read-only) Patterns to allow matching event paths.
+		
+		class watchdog.events.RegexMatchingEventHandler(regexes=['.*'], ignore_regexes=[], ignore_directories=False, case_sensitive=False)[source]
+		Bases: watchdog.events.FileSystemEventHandler
+		
+		Matches given regexes with file paths associated with occurring events.
+		
+		case_sensitive[source]
+		(Read-only) True if path names should be matched sensitive to case; False otherwise.
+		
+		dispatch(event)[source]
+		Dispatches events to the appropriate methods.
+		
+		Parameters:	event (FileSystemEvent) – The event object representing the file system event.
+		ignore_directories[source]
+		(Read-only) True if directories should be ignored; False otherwise.
+		
+		ignore_regexes[source]
+		(Read-only) Regexes to ignore matching event paths.
+		
+		regexes[source]
+		(Read-only) Regexes to allow matching event paths.
+		
+		class watchdog.events.LoggingEventHandler[source]
+		Bases: watchdog.events.FileSystemEventHandler
+		
+		Logs all the events captured.
+		
+		watchdog.observers.api
+		Immutables
+		class watchdog.observers.api.ObservedWatch(path, recursive)[source]
+		Bases: object
+		
+		An scheduled watch.
+		
+		Parameters:	
+		path – Path string.
+		recursive – True if watch is recursive; False otherwise.
+		is_recursive[source]
+		Determines whether subdirectories are watched for the path.
+		
+		path[source]
+		The path that this watch monitors.
+		
+		Collections
+		class watchdog.observers.api.EventQueue(maxsize=0)[source]
+		Bases: watchdog.utils.bricks.SkipRepeatsQueue
+		
+		Thread-safe event queue based on a special queue that skips adding the same event (FileSystemEvent) multiple times consecutively. Thus avoiding dispatching multiple event handling calls when multiple identical events are produced quicker than an observer can consume them.
+		
+		Classes
+		class watchdog.observers.api.EventEmitter(event_queue, watch, timeout=1)[source]
+		Bases: watchdog.utils.BaseThread
+		
+		Producer thread base class subclassed by event emitters that generate events and populate a queue with them.
+		
+		Parameters:	
+		event_queue (watchdog.events.EventQueue) – The event queue to populate with generated events.
+		watch (ObservedWatch) – The watch to observe and produce events for.
+		timeout (float) – Timeout (in seconds) between successive attempts at reading events.
+		queue_event(event)[source]
+		Queues a single event.
+		
+		Parameters:	event (An instance of watchdog.events.FileSystemEvent or a subclass.) – Event to be queued.
+		queue_events(timeout)[source]
+		Override this method to populate the event queue with events per interval period.
+		
+		Parameters:	timeout (float) – Timeout (in seconds) between successive attempts at reading events.
+		timeout[source]
+		Blocking timeout for reading events.
+		
+		watch[source]
+		The watch associated with this emitter.
+		
+		class watchdog.observers.api.EventDispatcher(timeout=1)[source]
+		Bases: watchdog.utils.BaseThread
+		
+		Consumer thread base class subclassed by event observer threads that dispatch events from an event queue to appropriate event handlers.
+		
+		Parameters:	timeout (float) – Event queue blocking timeout (in seconds).
+		dispatch_events(event_queue, timeout)[source]
+		Override this method to consume events from an event queue, blocking on the queue for the specified timeout before raising queue.Empty.
+		
+		Parameters:	
+		event_queue (EventQueue) – Event queue to populate with one set of events.
+		timeout (float) – Interval period (in seconds) to wait before timing out on the event queue.
+		Raises:	
+		queue.Empty
+		
+		event_queue[source]
+		The event queue which is populated with file system events by emitters and from which events are dispatched by a dispatcher thread.
+		
+		timeout[source]
+		Event queue block timeout.
+		
+		class watchdog.observers.api.BaseObserver(emitter_class, timeout=1)[source]
+		Bases: watchdog.observers.api.EventDispatcher
+		
+		Base observer.
+		
+		add_handler_for_watch(event_handler, watch)[source]
+		Adds a handler for the given watch.
+		
+		Parameters:	
+		event_handler (watchdog.events.FileSystemEventHandler or a subclass) – An event handler instance that has appropriate event handling methods which will be called by the observer in response to file system events.
+		watch (An instance of ObservedWatch or a subclass of ObservedWatch) – The watch to add a handler for.
+		emitters[source]
+		Returns event emitter created by this observer.
+		
+		remove_handler_for_watch(event_handler, watch)[source]
+		Removes a handler for the given watch.
+		
+		Parameters:	
+		event_handler (watchdog.events.FileSystemEventHandler or a subclass) – An event handler instance that has appropriate event handling methods which will be called by the observer in response to file system events.
+		watch (An instance of ObservedWatch or a subclass of ObservedWatch) – The watch to remove a handler for.
+		schedule(event_handler, path, recursive=False)[source]
+		Schedules watching a path and calls appropriate methods specified in the given event handler in response to file system events.
+		
+		Parameters:	
+		event_handler (watchdog.events.FileSystemEventHandler or a subclass) – An event handler instance that has appropriate event handling methods which will be called by the observer in response to file system events.
+		path (str) – Directory path that will be monitored.
+		recursive (bool) – True if events will be emitted for sub-directories traversed recursively; False otherwise.
+		Returns:	
+		An ObservedWatch object instance representing a watch.
+		
+		unschedule(watch)[source]
+		Unschedules a watch.
+		
+		Parameters:	watch (An instance of ObservedWatch or a subclass of ObservedWatch) – The watch to unschedule.
+		unschedule_all()[source]
+		Unschedules all watches and detaches all associated event handlers.
+		
+		watchdog.observers
+		module:	watchdog.observers
+		synopsis:	Observer that picks a native implementation if available.
+		author:	yesudeep@google.com (Yesudeep Mangalapilly)
+		Classes
+		watchdog.observers.Observer
+		alias of InotifyObserver
+		
+		Observer thread that schedules watching directories and dispatches calls to event handlers.
+		
+		You can also import platform specific classes directly and use it instead of Observer. Here is a list of implemented observer classes.:
+		
+		Class	Platforms	Note
+		inotify.InotifyObserver	Linux 2.6.13+	inotify(7) based observer
+		fsevents.FSEventsObserver	Mac OS X	FSEvents based observer
+		kqueue.KqueueObserver	Mac OS X and BSD with kqueue(2)	kqueue(2) based observer
+		read_directory_changes.WindowsApiObserver	MS Windows	Windows API-based observer
+		polling.PollingObserver	Any	fallback implementation
+		watchdog.observers.polling
+		module:	watchdog.observers.polling
+		synopsis:	Polling emitter implementation.
+		author:	yesudeep@google.com (Yesudeep Mangalapilly)
+		Classes
+		class watchdog.observers.polling.PollingObserver(timeout=1)[source]
+		Bases: watchdog.observers.api.BaseObserver
+		
+		Platform-independent observer that polls a directory to detect file system changes.
+		
+		class watchdog.observers.polling.PollingObserverVFS(stat, listdir, polling_interval=1)[source]
+		Bases: watchdog.observers.api.BaseObserver
+		
+		File system independent observer that polls a directory to detect changes.
+		
+		__init__(stat, listdir, polling_interval=1)[source]
+		Parameters:	
+		stat – stat function. See os.stat for details.
+		listdir – listdir function. See os.listdir for details.
+		polling_interval (float) – interval in seconds between polling the file system.
+		watchdog.utils
+		module:	watchdog.utils
+		synopsis:	Utility classes and functions.
+		author:	yesudeep@google.com (Yesudeep Mangalapilly)
+		Classes
+		class watchdog.utils.BaseThread[source]
+		Bases: threading.Thread
+		
+		Convenience class for creating stoppable threads.
+		
+		daemon
+		A boolean value indicating whether this thread is a daemon thread (True) or not (False).
+		
+		This must be set before start() is called, otherwise RuntimeError is raised. Its initial value is inherited from the creating thread; the main thread is not a daemon thread and therefore all threads created in the main thread default to daemon = False.
+		
+		The entire Python program exits when no alive non-daemon threads are left.
+		
+		ident
+		Thread identifier of this thread or None if it has not been started.
+		
+		This is a nonzero integer. See the thread.get_ident() function. Thread identifiers may be recycled when a thread exits and another thread is created. The identifier is available even after the thread has exited.
+		
+		isAlive()
+		Return whether the thread is alive.
+		
+		This method returns True just before the run() method starts until just after the run() method terminates. The module function enumerate() returns a list of all alive threads.
+		
+		is_alive()
+		Return whether the thread is alive.
+		
+		This method returns True just before the run() method starts until just after the run() method terminates. The module function enumerate() returns a list of all alive threads.
+		
+		join(timeout=None)
+		Wait until the thread terminates.
+		
+		This blocks the calling thread until the thread whose join() method is called terminates – either normally or through an unhandled exception or until the optional timeout occurs.
+		
+		When the timeout argument is present and not None, it should be a floating point number specifying a timeout for the operation in seconds (or fractions thereof). As join() always returns None, you must call isAlive() after join() to decide whether a timeout happened – if the thread is still alive, the join() call timed out.
+		
+		When the timeout argument is not present or None, the operation will block until the thread terminates.
+		
+		A thread can be join()ed many times.
+		
+		join() raises a RuntimeError if an attempt is made to join the current thread as that would cause a deadlock. It is also an error to join() a thread before it has been started and attempts to do so raises the same exception.
+		
+		name
+		A string used for identification purposes only.
+		
+		It has no semantics. Multiple threads may be given the same name. The initial name is set by the constructor.
+		
+		on_thread_start()[source]
+		Override this method instead of start(). start() calls this method.
+		
+		This method is called right before this thread is started and this object’s run() method is invoked.
+		
+		on_thread_stop()[source]
+		Override this method instead of stop(). stop() calls this method.
+		
+		This method is called immediately after the thread is signaled to stop.
+		
+		run()
+		Method representing the thread’s activity.
+		
+		You may override this method in a subclass. The standard run() method invokes the callable object passed to the object’s constructor as the target argument, if any, with sequential and keyword arguments taken from the args and kwargs arguments, respectively.
+		
+		should_keep_running()[source]
+		Determines whether the thread should continue running.
+		
+		stop()[source]
+		Signals the thread to stop.
+		
+		watchdog.utils.dirsnapshot
+		module:	watchdog.utils.dirsnapshot
+		synopsis:	Directory snapshots and comparison.
+		author:	yesudeep@google.com (Yesudeep Mangalapilly)
+		Where are the moved events? They “disappeared”
+		
+		This implementation does not take partition boundaries into consideration. It will only work when the directory tree is entirely on the same file system. More specifically, any part of the code that depends on inode numbers can break if partition boundaries are crossed. In these cases, the snapshot diff will represent file/directory movement as created and deleted events.
+		Classes
+		class watchdog.utils.dirsnapshot.DirectorySnapshot(path, recursive=True, walker_callback=<function <lambda> at 0x7f78fbeed500>, stat=<built-in function stat>, listdir=<built-in function listdir>)[source]
+		Bases: object
+		
+		A snapshot of stat information of files in a directory.
+		
+		Parameters:	
+		path (str) – The directory path for which a snapshot should be taken.
+		recursive (bool) – True if the entire directory tree should be included in the snapshot; False otherwise.
+		walker_callback –
+		Deprecated since version 0.7.2.
+		
+		stat –
+		Use custom stat function that returns a stat structure for path. Currently only st_dev, st_ino, st_mode and st_mtime are needed.
+		
+		A function with the signature walker_callback(path, stat_info) which will be called for every entry in the directory tree.
+		
+		listdir – Use custom listdir function. See os.listdir for details.
+		inode(path)[source]
+		Returns an id for path.
+		
+		path(id)[source]
+		Returns path for id. None if id is unknown to this snapshot.
+		
+		paths[source]
+		Set of file/directory paths in the snapshot.
+		
+		stat_info(path)[source]
+		Returns a stat information object for the specified path from the snapshot.
+		
+		Attached information is subject to change. Do not use unless you specify stat in constructor. Use inode(), mtime(), isdir() instead.
+		
+		Parameters:	path – The path for which stat information should be obtained from a snapshot.
+		class watchdog.utils.dirsnapshot.DirectorySnapshotDiff(ref, snapshot)[source]
+		Bases: object
+		
+		Compares two directory snapshots and creates an object that represents the difference between the two snapshots.
+		
+		Parameters:	
+		ref (DirectorySnapshot) – The reference directory snapshot.
+		snapshot (DirectorySnapshot) – The directory snapshot which will be compared with the reference snapshot.
+		dirs_created[source]
+		List of directories that were created.
+		
+		dirs_deleted[source]
+		List of directories that were deleted.
+		
+		dirs_modified[source]
+		List of directories that were modified.
+		
+		dirs_moved[source]
+		List of directories that were moved.
+		
+		Each event is a two-tuple the first item of which is the path that has been renamed to the second item in the tuple.
+		
+		files_created[source]
+		List of files that were created.
+		
+		files_deleted[source]
+		List of files that were deleted.
+		
+		files_modified[source]
+		List of files that were modified.
+		
+		files_moved[source]
+		List of files that were moved.
+		
+		Each event is a two-tuple the first item of which is the path that has been renamed to the second item in the tuple.
+		
+		Table Of Contents
+		API Reference
+		watchdog.events
+		Event Classes
+		Event Handler Classes
+		watchdog.observers.api
+		Immutables
+		Collections
+		Classes
+		watchdog.observers
+		Classes
+		watchdog.observers.polling
+		Classes
+		watchdog.utils
+		Classes
+		watchdog.utils.dirsnapshot
+		Classes
+		Previous topic
+		Quickstart
+		
+		Next topic
+		Contributing
+		
+		Quick search
+		 
+		Enter search terms or a module, class or function name.
+		
+		indexmodules |next |previous |watchdog 0.8.2 documentation »
+		© Copyright 2010, Yesudeep Mangalapilly. Created using Sphinx 1.2.2.]]></file>
+	<file path='drops.yaml'>
+		drop_zones:
+		  - name: "Echo Drop Zone"  # Name displayed in logs
+		    file_patterns: ["*.txt"]  # File patterns to watch (supports wildcards)
+		    reusable_prompt: ".claude/commands/echo.md"  # Path to the reusable prompt file (required)
+		    zone_dirs: ["agentic_drop_zone/echo_zone"]  # Directories to monitor (supports * wildcard)
+		    events: ["created", "modified"]  # Event types: created, modified, deleted, moved
+		    agent: "claude_code"  # Agent type: claude_code, gemini_cli, codex_cli (default: claude_code)
+		    model: "sonnet"  # Model to use for Claude Code (default: sonnet)
+		    color: "cyan"  # Color for console output (red, blue, green, cyan, yellow, magenta)
+		    # mcp_server_file: ".mcp.json" # Uncomment this to use MCP servers - don't bloat your context window if you don't need it
+		    create_zone_dir_if_not_exists: true  # Auto-create non-glob directories if missing (default: false)
+		  
+		  - name: "Gemini Echo Drop Zone"  # Test zone for Gemini CLI
+		    file_patterns: ["*.txt"]  # File patterns to watch
+		    reusable_prompt: ".claude/commands/echo.md"  # Same echo prompt
+		    zone_dirs: ["agentic_drop_zone/gemini_echo_zone"]  # Gemini-specific directory
+		    events: ["created"]  # Trigger on file creation
+		    agent: "gemini_cli"  # Use Gemini CLI agent
+		    model: "gemini-2.5-pro"  # Default Gemini model
+		    color: "green"  # Green for Gemini
+		    create_zone_dir_if_not_exists: true  # Auto-create directory
+		  
+		  - name: "Image Generation Drop Zone"
+		    file_patterns: ["*.txt", "*.md"]
+		    reusable_prompt: ".claude/commands/create_image.md"
+		    zone_dirs: ["agentic_drop_zone/generate_images_zone"]
+		    events: ["created"]
+		    agent: "claude_code"
+		    model: "sonnet"
+		    color: "blue"
+		    mcp_server_file: ".mcp.json"
+		    create_zone_dir_if_not_exists: true
+		  
+		  - name: "Gemini Image Generation Drop Zone"
+		    file_patterns: ["*.txt", "*.md"]
+		    reusable_prompt: ".claude/commands/create_image.md"
+		    zone_dirs: ["agentic_drop_zone/gemini_generate_images_zone"]
+		    events: ["created"]
+		    agent: "gemini_cli"
+		    model: "gemini-2.5-pro"
+		    color: "green"
+		    mcp_server_file: ".mcp.json"
+		    create_zone_dir_if_not_exists: true
+		  
+		  - name: "Image Edit Drop Zone"
+		    file_patterns: ["*.txt", "*.md", "*.json"]
+		    reusable_prompt: ".claude/commands/edit_image.md"
+		    zone_dirs: ["agentic_drop_zone/edit_images_zone"]
+		    events: ["created"]
+		    agent: "claude_code"
+		    model: "sonnet"
+		    color: "red"
+		    mcp_server_file: ".mcp.json"
+		    create_zone_dir_if_not_exists: true
+		
+		  - name: "Training Data Generation Zone"
+		    file_patterns: ["*.csv", "*.jsonl"]
+		    reusable_prompt: ".claude/commands/more_training_data.md"
+		    zone_dirs: ["agentic_drop_zone/training_data_zone"]
+		    events: ["created"]
+		    agent: "claude_code"
+		    model: "sonnet"
+		    color: "magenta"
+		    create_zone_dir_if_not_exists: true
+		
+		  - name: "Morning Debrief Zone"
+		    file_patterns: ["*.mp3", "*.wav", "*.m4a", "*.flac", "*.ogg", "*.aac", "*.mp4"]
+		    reusable_prompt: ".claude/commands/morning_debrief.md"
+		    zone_dirs: ["agentic_drop_zone/morning_debrief_zone"]
+		    events: ["created"]
+		    agent: "claude_code"
+		    model: "sonnet"
+		    color: "yellow"
+		    create_zone_dir_if_not_exists: true
+		
+		  - name: "Finance Categorizer Zone"
+		    file_patterns: ["*.csv"]
+		    reusable_prompt: ".claude/commands/finance_categorizer.md"
+		    zone_dirs: ["agentic_drop_zone/finance_zone"]
+		    events: ["created"]
+		    agent: "claude_code"
+		    model: "sonnet"
+		    color: "green"
+		    create_zone_dir_if_not_exists: true</file>
+	<file path='example_input_files/bank_statement.csv'><![CDATA[
+		date,description,deposit,withdrawal,category,balance
+		2025-08-01,ACH CREDIT PAYROLL ADP 847291,10000.00,,Income,160000.00
+		2025-08-01,MORTGAGE PYMNT WF 0001234 REF #45789,,4200.00,Housing,155800.00
+		2025-08-01,TESLA MOTORS 650-681-5100 CA,,649.99,Transportation,155150.01
+		2025-08-01,AMAZON.COM*XY8923 AMZN.COM/BILL,,1249.99,Shopping,153900.02
+		2025-08-01,ANTHROPIC CLAUDE-OPUS-4-1-API,,3456.78,AI Services,150443.24
+		2025-08-02,WHFOODS #0245 SAN FRANCISCOCA,,187.45,Food,150255.79
+		2025-08-02,SHELL OIL 57849600001 SAN JOSE CA,,72.30,Transportation,150183.49
+		2025-08-02,AWS SERVICES 866-216-1072 WA,,3847.50,Technology,146335.99
+		2025-08-02,OPENAI API USAGE GPT-4-TURBO,,1234.56,AI Services,145101.43
+		2025-08-03,NETFLIX.COM 866-579-7172 CA,,15.99,Entertainment,145085.44
+		2025-08-03,SPOTIFY USA 646-517-4579 NY,,9.99,Entertainment,145075.45
+		2025-08-03,AMAZON.COM*RT4567 AMZN.COM/BILL,,789.99,Electronics,144285.46
+		2025-08-03,GOOGLE COMPUTE ENGINE VM-8472,,892.45,Cloud Computing,143393.01
+		2025-08-04,TARGET T-1847 REDWOOD CITY CA,,234.67,Shopping,143158.34
+		2025-08-04,AMAZON PRIME NOW*TMP4 AMZN.COM,,156.78,Groceries,143001.56
+		2025-08-04,GOOGLE NANO-BANANA API MODEL,,456.78,AI Services,142544.78
+		2025-08-05,PG&E ONLINE PMT 8001234567,,285.40,Utilities,142259.38
+		2025-08-05,WATER DEPT CITY OF PALO ALTO,,89.75,Utilities,142169.63
+		2025-08-05,AMAZON.COM*BK8901 AMZN.COM/BILL,,2345.67,Home,139823.96
+		2025-08-05,ANTHROPIC CLAUDE-OPUS-4-1-API,,2890.34,AI Services,136933.62
+		2025-08-06,SQ *STARBUCKS STORE SAN FRANC,,12.45,Dining,136921.17
+		2025-08-06,TRADERJOES #542 QPS MENLOPARK,,156.80,Groceries,136764.37
+		2025-08-06,AWS CLOUDFRONT 866-216-1072 WA,,892.30,Technology,135872.07
+		2025-08-06,OPENAI API DALL-E-3 IMAGE GEN,,567.89,AI Services,135304.18
+		2025-08-07,XFINITY MOBILE 8005934500 PA,,119.99,Utilities,135184.19
+		2025-08-07,AMAZON.COM*HG5678 AMZN.COM/BILL,,567.89,Books,134616.30
+		2025-08-07,GOOGLE CLOUD STORAGE BUCKET-847,,234.56,Cloud Computing,134381.74
+		2025-08-08,EQUINOX 877-935-9555 NY,,189.00,Recreation,134192.74
+		2025-08-08,AMAZON.COM*MK4567 AMZN.COM/BILL,,89.99,Shopping,134102.75
+		2025-08-08,AWS EC2 INSTANCES 866-216-1072,,1567.45,Technology,132535.30
+		2025-08-08,ANTHROPIC CLAUDE-OPUS-4-1-API,,4567.89,AI Services,127967.41
+		2025-08-09,SQ *THE FRENCH LAUNDRY YOUNTV,,342.75,Food,127624.66
+		2025-08-09,AMAZON FRESH*W9012 AMZN.COM/BI,,234.56,Groceries,127390.10
+		2025-08-09,GOOGLE NANO-BANANA BATCH PROC,,789.12,AI Services,126600.98
+		2025-08-10,CHEVRON #9847 SAN MATEO CA,,68.90,Transportation,126532.08
+		2025-08-10,CVS/PHARMACY #03847 PALO ALTO,,45.67,Health,126486.41
+		2025-08-10,AMAZON.COM*OP3456 AMZN.COM/BILL,,3456.78,Electronics,123029.63
+		2025-08-10,OPENAI API FINE-TUNING JOB-847,,2345.67,AI Services,120683.96
+		2025-08-11,FARMERS INS 8009346700 REF1234,,2150.00,Insurance,118533.96
+		2025-08-11,AMAZON SUBSCRIBE SAVE AMZN.COM,,456.90,Household,118077.06
+		2025-08-11,GOOGLE COMPUTE ENGINE GPU-T4,,1567.89,Cloud Computing,116509.17
+		2025-08-12,COSTCO WHSE #0456 REDWOOD CITY,,298.44,Groceries,116210.73
+		2025-08-12,UBER * TRIP JUL27 HELP.UBER.COM,,23.50,Transportation,116187.23
+		2025-08-12,AWS S3 STORAGE 866-216-1072 WA,,678.90,Technology,115508.33
+		2025-08-12,ANTHROPIC CLAUDE-OPUS-4-1-API,,3789.45,AI Services,111718.88
+		2025-08-13,APL* APPLE ONLINE STORE 800-692-7753,,89.99,Technology,111628.89
+		2025-08-13,AMAZON.COM*QW7890 AMZN.COM/BILL,,1234.56,Office,110394.33
+		2025-08-13,GOOGLE NANO-BANANA API PREMIUM,,567.89,AI Services,109826.44
+		2025-08-14,PRESIDIO DRY CLNRS SAN FRANCISC,,38.50,Laundry,109787.94
+		2025-08-14,BLUE BOTTLE COFFEE #45 SF CA,,8.75,Coffee,109779.19
+		2025-08-14,AMAZON PRIME VIDEO RENT/BUY,,19.99,Entertainment,109759.20
+		2025-08-14,OPENAI API WHISPER TRANSCRIBE,,345.67,AI Services,109413.53
+		2025-08-15,ACH CREDIT PAYROLL ADP 847291,10000.00,,Income,119413.53
+		2025-08-15,GEICO AUTO INS 8009876543,,1245.60,Insurance,118167.93
+		2025-08-15,AWS LAMBDA FUNCTIONS 866-216-1072,,234.78,Technology,117933.15
+		2025-08-15,ANTHROPIC CLAUDE-OPUS-4-1-API,,5678.90,AI Services,112254.25
+		2025-08-16,SAFEWAY STORE 1847 MENLO PARK CA,,145.30,Groceries,112108.95
+		2025-08-16,SF PARKING METER 45F7G,,4.50,Parking,112104.45
+		2025-08-16,AMAZON.COM*YU8901 AMZN.COM/BILL,,4567.89,Furniture,107536.56
+		2025-08-16,GOOGLE CLOUD RUN SERVICES-8472,,456.78,Cloud Computing,107079.78
+		2025-08-17,AMC METREON 16 SAN FRANCISCO CA,,32.50,Entertainment,107047.28
+		2025-08-17,PAZZO RISTORANTE PALO ALTO CA,,78.90,Dining,106968.38
+		2025-08-17,AWS RDS DATABASE 866-216-1072 WA,,1890.45,Technology,105077.93
+		2025-08-17,GOOGLE NANO-BANANA HIGH-RES,,890.12,AI Services,104187.81
+		2025-08-18,AMAZON.COM*BK7890 AMZN.COM/BILL,,67.85,Books,104119.96
+		2025-08-18,AMAZON FRESH*TMP9 AMZN.COM/BI,,189.34,Groceries,103930.62
+		2025-08-18,OPENAI API GPT-4-VISION,,1456.78,AI Services,102473.84
+		2025-08-19,VERIZON WRLS*VTIQ 8009220204 NY,,145.99,Phone,102327.85
+		2025-08-19,HOME DEPOT #4571 REDWOOD CITY,,189.75,Home Improvement,102138.10
+		2025-08-19,AMAZON.COM*GH2345 AMZN.COM/BILL,,789.01,Gaming,101349.09
+		2025-08-19,ANTHROPIC CLAUDE-OPUS-4-1-API,,2345.67,AI Services,99003.42
+		2025-08-20,DR JENNIFER SMITH DDS PALO ALT,,250.00,Medical,98753.42
+		2025-08-20,PANERA BREAD #203847 PALO ALTO,,14.85,Food,98738.57
+		2025-08-20,AWS CLOUDWATCH 866-216-1072 WA,,456.78,Technology,98281.79
+		2025-08-20,GOOGLE COMPUTE ENGINE NETWORK,,234.56,Cloud Computing,98047.23
+		2025-08-21,SHELL OIL 57849600089 MOUNTAIN V,,74.20,Transportation,97973.03
+		2025-08-21,BEST BUY 00004571 MOUNTAIN VIEW,,345.99,Electronics,97627.04
+		2025-08-21,AMAZON.COM*ZX4567 AMZN.COM/BILL,,2345.67,Appliances,95281.37
+		2025-08-21,GOOGLE NANO-BANANA BULK PROC,,1234.56,AI Services,94046.81
+		2025-08-22,BLUE CROSS BLUE SHIELD 8457291,,890.50,Insurance,93156.31
+		2025-08-22,KROGER #0847 ATLANTA GA,,167.40,Food,92988.91
+		2025-08-22,AWS MONTHLY BILLING 866-216-1072,,5678.90,Technology,87310.01
+		2025-08-22,ANTHROPIC CLAUDE-OPUS-4-1-API,,4567.89,AI Services,82742.12
+		2025-08-23,HULU 2132057171 CA,,14.99,Entertainment,82727.13
+		2025-08-23,SQ *PHILZ COFFEE SF MISSION,,6.25,Coffee,82720.88
+		2025-08-23,AMAZON.COM*UI8901 AMZN.COM/BILL,,678.90,Clothing,82042.98
+		2025-08-23,OPENAI API EMBEDDINGS ADA-002,,567.89,AI Services,81474.09
+		2025-08-24,SANTA CLARA CNTY TAX COLL,,3456.78,Government,78017.31
+		2025-08-24,AMAZON PRIME NOW*TMP7 AMZN.COM,,234.56,Groceries,77782.75
+		2025-08-24,GOOGLE CLOUD BIGQUERY USAGE,,789.45,Cloud Computing,76993.30
+		2025-08-25,AKIKO'S RESTAURANT SF CA,,134.60,Dining,76858.70
+		2025-08-25,UBER EATS *TEMP AUTH 415-555-1234,,28.75,Food,76829.95
+		2025-08-25,AMAZON.COM*ER3456 AMZN.COM/BILL,,1567.89,Sports,75262.06
+		2025-08-25,ANTHROPIC CLAUDE-OPUS-4-1-API,,3456.78,AI Services,71805.28
+		2025-08-26,TARGET.COM * 800-591-3869 MN,,98.33,Shopping,71706.95
+		2025-08-26,EXXONMOBIL 57849600123 CA,,71.45,Transportation,71635.50
+		2025-08-26,AWS ELASTIC IP 866-216-1072 WA,,123.45,Technology,71512.05
+		2025-08-26,GOOGLE NANO-BANANA API CALLS,,456.78,AI Services,71055.27
+		2025-08-27,NEW YORK LIFE INS 8009876543,,234.50,Insurance,70820.77
+		2025-08-27,AMAZON FRESH*W847JK AMZN.COM/BI,,87.65,Food,70733.12
+		2025-08-27,AMAZON.COM*PO9012 AMZN.COM/BILL,,3456.78,Photography,67276.34
+		2025-08-27,OPENAI API FUNCTION CALLING,,890.12,AI Services,66386.22
+		2025-08-28,GOLDEN GATE CAR WASH SF CA,,25.00,Auto,66361.22
+		2025-08-28,WALGREENS #07841 PALO ALTO CA,,34.99,Pharmacy,66326.23
+		2025-08-28,AWS SUPPORT PLAN 866-216-1072 WA,,789.00,Technology,65537.23
+		2025-08-28,GOOGLE COMPUTE ENGINE K8S-CLUS,,1234.56,Cloud Computing,64302.67
+		2025-08-29,NORDSTROM #121 SAN FRANCISCO CA,,456.80,Clothing,63845.87
+		2025-08-29,CHIPOTLE 0847 MOUNTAIN VIEW CA,,12.95,Fast Food,63832.92
+		2025-08-29,AMAZON.COM*CV6789 AMZN.COM/BILL,,2789.45,Computer,61043.47
+		2025-08-29,ANTHROPIC CLAUDE-OPUS-4-1-API,,6789.01,AI Services,54254.46
+		2025-08-30,PGANDE ONLINE PMT REF 8457291,,156.70,Utilities,54097.76
+		2025-08-30,PETCO #847 REDWOOD CITY CA,,78.99,Pet Care,54018.77
+		2025-08-30,AWS DATA TRANSFER 866-216-1072,,345.67,Technology,53673.10
+		2025-08-30,GOOGLE NANO-BANANA ENTERPRISE,,2345.67,AI Services,51327.43
+		2025-08-31,SCHWAB MONEYLINK TRANSFER 8457,,5000.00,Savings,46327.43
+		2025-08-31,AMAZON.COM*FINAL8 AMZN.COM/BILL,,1234.56,Miscellaneous,45092.87
+		2025-08-31,OPENAI MONTHLY INVOICE AUG-2025,,3456.78,AI Services,41636.09]]></file>
+	<file path='example_input_files/cats_edit.json'>
+		{
+		  "edit_image": "./edit_image_input_files/cat_sitting_in_chair.jpg",
+		  "prompts": [
+		    "Change the fur of the cat to black",
+		    "Change the fur of the cat to orange",
+		    "Change the fur of the cat to gray",
+		    "Change the fur of the cat to yellow",
+		    "Change the fur of the cat to blue"
+		  ]
+		}</file>
+	<file path='example_input_files/cats_enhanced.txt'>
+		Build these ten image prompts in parallel using Task:
+		- "A cat sits on a chair"
+		- "A cat sits on a chair rule of thirds"
+		- "A cat sits on a chair rule of thirds, with strong sunlight beaming on from blurry window"
+		- "A fluffy orange cat curled up on a windowsill, sunlight streaming in"
+		- "A black cat with green eyes perched on a bookshelf surrounded by plants"
+		- "A kitten playing with a ball of yarn on a wooden floor"
+		- "A cat looking out a rainy window, reflections on the glass"
+		- "A group of cats lounging in a sunbeam on a patterned rug"
+		- "A white cat with blue eyes sitting in a field of wildflowers"
+		- "A tabby cat stretching on a cozy blanket near a fireplace"</file>
+	<file path='example_input_files/cats.txt'>
+		Build these three image prompts in parallel using Task:
+		- "A cat sits on a chair"
+		- "A cat sits on a chair rule of thirds"
+		- "A cat sits on a chair rule of thirds, with strong sunlight beaming on from blurry </file>
+	<file path='example_input_files/echo.txt'>
+		Simple agentic drop zone test</file>
+	<file path='example_input_files/twitter_classification_dataset.csv'>
+		tweet_id,username,text,created_at,retweets,likes,replies,hashtags,sentiment,category
+		1001,tech_enthusiast,"Just tried the new AI assistant and it's amazing! Revolutionary technology at work #AI #tech",2024-03-15T10:30:00Z,45,234,12,"#AI #tech",positive,technology
+		1002,sports_fan,"Can't believe my team lost again. This season is a disaster #disappointed #sports",2024-03-15T11:15:00Z,8,67,23,"#disappointed #sports",negative,sports
+		1003,foodie_lover,"Perfect morning with fresh coffee and croissants at my favorite cafe ☕",2024-03-15T08:45:00Z,12,156,5,,positive,lifestyle
+		1004,news_reader,"Breaking: New climate policy announced by government officials today",2024-03-15T14:20:00Z,89,445,67,,neutral,politics
+		1005,movie_buff,"Just watched the latest blockbuster. Average plot but great special effects #movies",2024-03-15T21:30:00Z,23,187,34,"#movies",neutral,entertainment
+		1006,travel_explorer,"Missing those sunset views from my vacation in Bali. Can't wait to go back! #travel #bali",2024-03-15T16:45:00Z,34,289,18,"#travel #bali",positive,travel
+		1007,student_life,"Finals week is killing me. Too much stress and not enough sleep #studentlife #stress",2024-03-15T02:15:00Z,156,892,78,"#studentlife #stress",negative,education
+		1008,fitness_guru,"Completed my first marathon today! 26.2 miles of pure determination #marathon #fitness",2024-03-15T17:30:00Z,67,534,89,"#marathon #fitness",positive,sports
+		1009,music_lover,"The concert last night was absolutely incredible. Best performance I've ever seen #music",2024-03-15T09:20:00Z,45,312,45,"#music",positive,entertainment
+		1010,business_news,"Stock markets showing mixed signals today. Investors remain cautious #stocks #finance",2024-03-15T13:45:00Z,78,234,56,"#stocks #finance",neutral,business
+		1011,weather_watcher,"Another rainy day in the city. When will spring finally arrive? #rain #weather",2024-03-15T07:30:00Z,12,89,23,"#rain #weather",negative,weather
+		1012,pet_owner,"My dog learned a new trick today! So proud of my furry friend #dogs #pets",2024-03-15T15:20:00Z,23,178,12,"#dogs #pets",positive,lifestyle
+		1013,game_streamer,"Streaming live on Twitch tonight. Come watch me fail at this new game #gaming #twitch",2024-03-15T19:45:00Z,34,267,45,"#gaming #twitch",neutral,entertainment
+		1014,health_advocate,"Regular exercise and healthy eating are key to a long life #health #wellness",2024-03-15T12:30:00Z,56,389,34,"#health #wellness",positive,health
+		1015,art_collector,"Visited the new art exhibition today. Some pieces were thought-provoking #art #culture",2024-03-15T16:15:00Z,18,145,28,"#art #culture",positive,culture
+		1016,social_critic,"Social media is destroying real human connections. We need to disconnect more often",2024-03-15T20:30:00Z,234,567,123,,negative,technology
+		1017,fashion_blogger,"Love this new sustainable fashion brand. Style and ethics can coexist #fashion #sustainable",2024-03-15T11:45:00Z,45,234,19,"#fashion #sustainable",positive,fashion
+		1018,comedy_fan,"That comedy show had me laughing until my stomach hurt. Pure entertainment #comedy",2024-03-15T22:15:00Z,34,198,12,"#comedy",positive,entertainment
+		1019,environmental_ist,"Climate change is real and we need action now. The planet cannot wait #climatechange",2024-03-15T14:45:00Z,123,678,89,"#climatechange",neutral,environment
+		1020,photographer,"Golden hour photography session was perfect today. Nature never disappoints #photography",2024-03-15T18:30:00Z,67,445,34,"#photography",positive,art
+		1021,chef_amateur,"Cooking disaster tonight. Smoke alarm was my timer again #cooking #fail",2024-03-15T19:20:00Z,89,356,67,"#cooking #fail",negative,lifestyle
+		1022,book_reviewer,"Just finished reading this thriller. Couldn't put it down! #books #reading",2024-03-15T23:45:00Z,23,167,45,"#books #reading",positive,literature
+		1023,crypto_trader,"Bitcoin is showing interesting patterns today. Market volatility continues #crypto #bitcoin",2024-03-15T10:15:00Z,67,234,78,"#crypto #bitcoin",neutral,finance
+		1024,parent_blogger,"Kids said the funniest thing today. Parenthood is full of surprises #parenting #kids",2024-03-15T17:45:00Z,45,289,23,"#parenting #kids",positive,family
+		1025,science_nerd,"New research on quantum computing published today. Fascinating possibilities ahead #science",2024-03-15T13:20:00Z,34,178,56,"#science",positive,science
+		1026,car_enthusiast,"Test drove the new electric vehicle. Impressive acceleration and silent ride #cars #electric",2024-03-15T16:30:00Z,56,323,34,"#cars #electric",positive,automotive
+		1027,gardener_home,"Spring planting season has begun! Excited to see my garden bloom #gardening #spring",2024-03-15T09:15:00Z,23,145,18,"#gardening #spring",positive,lifestyle
+		1028,political_pundit,"Recent policy changes raise important questions about future direction #politics #policy",2024-03-15T15:45:00Z,145,423,234,"#politics #policy",neutral,politics
+		1029,coffee_addict,"Third cup of coffee today and it's only noon. No regrets #coffee #caffeine",2024-03-15T12:00:00Z,78,267,45,"#coffee #caffeine",neutral,lifestyle
+		1030,dance_instructor,"Teaching new choreography to my students today. Movement is pure joy #dance #teaching",2024-03-15T18:15:00Z,34,198,23,"#dance #teaching",positive,arts
+		1031,startup_founder,"Another late night at the office building our dream. Entrepreneurship is tough #startup",2024-03-15T01:30:00Z,67,345,67,"#startup",neutral,business
+		1032,history_buff,"Learning about ancient civilizations never gets old. History repeats itself #history",2024-03-15T14:20:00Z,23,134,34,"#history",positive,education
+		1033,yoga_practitioner,"Morning yoga session brought peace to my chaotic day #yoga #mindfulness",2024-03-15T07:45:00Z,45,234,18,"#yoga #mindfulness",positive,wellness
+		1034,news_anchor,"Reporting on today's breaking news. Stay informed and stay safe everyone",2024-03-15T18:00:00Z,234,567,123,,neutral,news
+		1035,volunteer_worker,"Spent the day helping at the local food bank. Community service fills the heart #volunteer",2024-03-15T16:45:00Z,56,389,45,"#volunteer",positive,community
+		1036,language_learner,"Practicing Spanish every day is paying off. ¡Hablo español mejor ahora! #language #spanish",2024-03-15T20:15:00Z,34,178,28,"#language #spanish",positive,education
+		1037,real_estate_agent,"Housing market showing signs of stabilization after months of volatility #realestate",2024-03-15T11:30:00Z,78,267,56,"#realestate",neutral,business
+		1038,makeup_artist,"Created a stunning look for today's photoshoot. Artistry meets beauty #makeup #beauty",2024-03-15T13:45:00Z,67,345,34,"#makeup #beauty",positive,beauty
+		1039,outdoor_adventurer,"Hiking trail was challenging but the summit view was worth every step #hiking #nature",2024-03-15T17:20:00Z,89,456,67,"#hiking #nature",positive,outdoor
+		1040,mental_health_advocate,"Taking care of your mental health is just as important as physical health #mentalhealth",2024-03-15T10:45:00Z,145,678,89,"#mentalhealth",positive,health
+		1041,tech_reviewer,"Latest smartphone release underwhelming. Innovation seems to be slowing down #tech #smartphone",2024-03-15T14:15:00Z,123,445,178,"#tech #smartphone",negative,technology
+		1042,baker_professional,"Fresh bread aroma filling the bakery this morning. Nothing beats homemade #baking #bread",2024-03-15T06:30:00Z,34,234,23,"#baking #bread",positive,food
+		1043,podcast_host,"Great conversation with today's guest about future of work. Episode drops tomorrow #podcast",2024-03-15T21:45:00Z,67,289,45,"#podcast",positive,media
+		1044,wedding_planner,"Beautiful ceremony today despite the unexpected rain. Love conquers all weather #wedding",2024-03-15T19:30,56,378,34,"#wedding",positive,events
+		1045,economist_analyst,"Inflation rates showing concerning trends. Economic indicators need careful monitoring #economics",2024-03-15T12:45:00Z,89,234,67,"#economics",negative,finance
+		1046,sleep_researcher,"Study shows importance of 8 hours sleep for cognitive function. Rest is productivity #sleep #health",2024-03-15T08:20:00Z,78,345,56,"#sleep #health",positive,health
+		1047,urban_planner,"New city development project aims to create more green spaces for residents #urbanplanning",2024-03-15T15:30:00Z,45,198,67,"#urbanplanning",positive,community
+		1048,wine_sommelier,"Tasting notes from today's vineyard visit. Exceptional vintage with complex flavors #wine #tasting",2024-03-15T18:45,23,167,12,"#wine #tasting",positive,food
+		1049,cybersecurity_expert,"Recent data breach highlights importance of strong password practices #cybersecurity #privacy",2024-03-15T11:15:00Z,156,567,234,"#cybersecurity #privacy",neutral,technology
+		1050,marine_biologist,"Ocean research expedition revealed fascinating deep-sea creatures today #marine #science",2024-03-15T16:20:00Z,67,389,45,"#marine #science",positive,science
+		1051,delivery_driver,"Traffic was brutal today but all packages delivered on time #delivery #work",2024-03-15T17:45:00Z,23,134,18,"#delivery #work",neutral,work
+		1052,interior_designer,"Completed room makeover exceeds client expectations. Design transforms spaces #interior #design",2024-03-15T14:30:00Z,45,267,34,"#interior #design",positive,design
+		1053,stand_up_comedian,"Bombing on stage teaches you more than killing. Every performance is learning #comedy #standup",2024-03-15T23:15:00Z,78,234,56,"#comedy #standup",neutral,entertainment
+		1054,nutrition_coach,"Meal prep Sunday sets the tone for healthy eating all week #nutrition #mealprep",2024-03-15T19:00:00Z,56,323,23,"#nutrition #mealprep",positive,health
+		1055,antique_collector,"Found rare vintage item at estate sale today. Historical treasures still exist #antiques #vintage",2024-03-15T13:15:00Z,34,178,28,"#antiques #vintage",positive,collecting
+		1056,emergency_responder,"Another long shift but grateful to help those in need #emt #firstresponder",2024-03-15T06:45:00Z,89,456,67,"#emt #firstresponder",positive,service
+		1057,drone_operator,"Aerial photography session captured stunning landscape views today #drone #photography",2024-03-15T16:30:00Z,45,234,34,"#drone #photography",positive,technology
+		1058,retirement_planner,"Starting early with retirement savings pays compound interest dividends #retirement #finance",2024-03-15T10:30:00Z,67,289,45,"#retirement #finance",positive,finance
+		1059,theater_director,"Rehearsals are intense but opening night will be magical #theater #drama",2024-03-15T20:45:00Z,23,167,56,"#theater #drama",positive,arts
+		1060,climate_scientist,"New data confirms accelerating ice sheet melting patterns. Urgent action needed #climate #science",2024-03-15T12:20:00Z,234,678,145,"#climate #science",negative,environment
+		1061,bartender_craft,"Created new cocktail recipe tonight. Customers love experimental flavors #cocktails #bartending",2024-03-15T22:30,34,198,23,"#cocktails #bartending",positive,food
+		1062,solar_installer,"Renewable energy adoption growing rapidly. Clean power future looks bright #solar #renewable",2024-03-15T14:45:00Z,78,345,67,"#solar #renewable",positive,environment
+		1063,voice_actor,"Recording session for animation project was challenging but fun #voiceacting #animation",2024-03-15T18:20:00Z,45,234,34,"#voiceacting #animation",positive,entertainment
+		1064,tax_preparer,"Tax season stress levels reaching maximum capacity. April deadline approaches #taxes #accounting",2024-03-15T21:15:00Z,123,367,89,"#taxes #accounting",negative,finance
+		1065,furniture_maker,"Handcrafted dining table completed after weeks of meticulous work #woodworking #craftsmanship",2024-03-15T15:45:00Z,56,289,23,"#woodworking #craftsmanship",positive,crafts
+		1066,sports_journalist,"Championship game analysis reveals strategic coaching decisions #sports #journalism",2024-03-15T11:30:00Z,89,234,78,"#sports #journalism",neutral,sports
+		1067,flight_attendant,"Turbulence made service challenging but passengers remained calm #aviation #travel",2024-03-15T09:45:00Z,34,167,45,"#aviation #travel",neutral,travel
+		1068,insurance_agent,"Helping families protect their financial future through proper coverage #insurance #family",2024-03-15T13:30:00Z,23,134,34,"#insurance #family",positive,finance
+		1069,landscape_architect,"New public park design incorporates native plants and sustainable drainage #landscape #sustainability",2024-03-15T16:15:00Z,67,323,56,"#landscape #sustainability",positive,environment
+		1070,food_critic,"Restaurant review: Exceptional service but disappointing main courses #food #restaurant",2024-03-15T20:00:00Z,78,245,67,"#food #restaurant",negative,food
+		1071,physical_therapist,"Patient progress in recovery brings joy to this challenging profession #physicaltherapy #healthcare",2024-03-15T08:30:00Z,45,234,23,"#physicaltherapy #healthcare",positive,healthcare
+		1072,cryptocurrency_miner,"Mining rig efficiency improved with new cooling system upgrade #crypto #mining",2024-03-15T17:30:00Z,56,178,78,"#crypto #mining",positive,technology
+		1073,event_coordinator,"Wedding planning stress worth it when seeing couple's happiness #wedding #events",2024-03-15T19:15:00Z,67,356,34,"#wedding #events",positive,events
+		1074,mechanical_engineer,"New engine design shows 15% efficiency improvement in testing phase #engineering #innovation",2024-03-15T14:00:00Z,34,167,45,"#engineering #innovation",positive,engineering
+		1075,librarian_public,"Quiet day at library but helped several patrons find perfect books #library #books",2024-03-15T12:15:00Z,23,145,18,"#library #books",positive,education
+		1076,fire_chief,"Fire prevention education program launches in local schools next week #fire #safety",2024-03-15T10:00:00Z,89,367,67,"#fire #safety",positive,safety
+		1077,graphic_designer,"Logo design process requires balancing creativity with client brand vision #design #branding",2024-03-15T15:20:00Z,45,234,56,"#design #branding",neutral,design
+		1078,professional_organizer,"Decluttered home office increases productivity and reduces stress levels #organization #productivity",2024-03-15T11:45:00Z,67,289,34,"#organization #productivity",positive,lifestyle
+		1079,meteorologist_local,"Severe weather warning issued for tomorrow evening. Stay safe everyone #weather #safety",2024-03-15T18:45,123,456,89,"#weather #safety",neutral,weather
+		1080,horse_trainer,"Young horse showing excellent progress in training sessions #horses #training",2024-03-15T07:20:00Z,34,178,23,"#horses #training",positive,animals
+		1081,data_analyst,"Customer behavior patterns reveal interesting seasonal shopping trends #data #analytics",2024-03-15T13:45:00Z,78,234,67,"#data #analytics",neutral,business
+		1082,massage_therapist,"Stress relief through therapeutic massage helps clients find balance #massage #wellness",2024-03-15T16:45:00Z,45,267,34,"#massage #wellness",positive,wellness
+		1083,film_editor,"Post-production magic transforms raw footage into compelling storytelling #film #editing",2024-03-15T22:00:00Z,56,234,45,"#film #editing",positive,entertainment
+		1084,pest_control_technician,"Ant invasion eliminated using environmentally safe treatment methods #pestcontrol #environment",2024-03-15T09:30:00Z,23,134,28,"#pestcontrol #environment",positive,service
+		1085,jewelry_designer,"Custom engagement ring design brings couple's vision to sparkling reality #jewelry #design",2024-03-15T14:20:00Z,67,345,23,"#jewelry #design",positive,crafts
+		1086,truck_driver_long_haul,"Cross-country delivery completed safely despite challenging weather conditions #trucking #delivery",2024-03-15T05:45:00Z,34,167,45,"#trucking #delivery",positive,transportation
+		1087,swim_instructor,"Teaching children water safety while making lessons fun and engaging #swimming #safety",2024-03-15T17:00:00Z,45,234,34,"#swimming #safety",positive,education
+		1088,optometrist_practice,"Regular eye exams detect problems early and preserve precious vision #eyecare #health",2024-03-15T11:20:00Z,56,189,23,"#eyecare #health",positive,healthcare
+		1089,street_performer,"Busking downtown brings music to busy commuters during rush hour #music #street",2024-03-15T18:30,78,267,56,"#music #street",positive,entertainment
+		1090,hvac_technician,"Air conditioning repair completed just before summer heat wave arrives #hvac #repair",2024-03-15T13:15:00Z,23,134,18,"#hvac #repair",positive,service
+		1091,florist_wedding,"Bridal bouquet arrangement combines elegant roses with seasonal wildflowers #flowers #wedding",2024-03-15T10:45:00Z,67,323,45,"#flowers #wedding",positive,events
+		1092,security_guard_night,"Quiet shift at office building but vigilance never wavers #security #safety",2024-03-15T03:30:00Z,12,89,23,"#security #safety",neutral,security
+		1093,dog_groomer_professional,"Pampered poodle transformation from shaggy to fabulous complete #dogs #grooming",2024-03-15T15:30:00Z,89,456,34,"#dogs #grooming",positive,pets
+		1094,electrician_residential,"Home rewiring project enhances safety and increases property value #electrical #home",2024-03-15T12:45:00Z,34,178,56,"#electrical #home",positive,service
+		1095,tattoo_artist_custom,"Memorial tattoo honors client's beloved grandmother with meaningful symbolism #tattoo #memorial",2024-03-15T19:45:00Z,56,289,67,"#tattoo #memorial",positive,art
+		1096,plumber_emergency,"Burst pipe repair prevented major water damage to family home #plumbing #emergency",2024-03-15T07:15:00Z,45,234,23,"#plumbing #emergency",positive,service
+		1097,carpenter_finish,"Custom kitchen cabinets installation transforms cooking space into chef's paradise #carpentry #kitchen",2024-03-15T16:00:00Z,67,345,45,"#carpentry #kitchen",positive,home
+		1098,locksmith_24hour,"Locked out customer grateful for quick response during midnight emergency #locksmith #service",2024-03-15T01:20:00Z,23,134,18,"#locksmith #service",positive,service
+		1099,window_cleaner_commercial,"Skyscraper window cleaning requires courage and precision at great heights #windows #cleaning",2024-03-15T08:45:00Z,78,234,34,"#windows #cleaning",neutral,service
+		1100,appliance_repair_tech,"Washing machine resurrection saves family from laundromat expenses #appliance #repair",2024-03-15T14:30:00Z,34,167,28,"#appliance #repair",positive,service</file>
+	<file path='README.md'><![CDATA[
+		# Agentic Drop Zone
+		> See what you can do with the Agentic Drop Zone [in this video](https://youtu.be/gyjoXC8lzIw).
+		
+		Automated file processing system that monitors directories and triggers agents (Claude Code, Gemini CLI, Codex CLI) when files are dropped.
+		
+		## Features
+		
+		- 📝 Simple single file script: `sfs_agentic_drop_zone.py`
+		- ⚙️ Configurable drop zones in `drops.yaml`
+		- 🤖 Agent agnostic implementation: Claude Code, Gemini CLI, Codex CLI (unimplemented)
+		- 🧩 Run multiple agents in parallel
+		- 🚀 Run arbitrary agentic workflows: Do 'anything' your agent can do
+		
+		<img src="./images/arch.png" alt="System Architecture Diagram" style="max-width: 800px;">
+		
+		## System Architecture
+		
+		```mermaid
+		graph LR
+		    subgraph "Agentic Drop Zone System"
+		        A[File Dropped] --> B[Watchdog Detects Event]
+		        B --> C{Matches Pattern?}
+		        C -->|Yes| D[Load Prompt Template]
+		        C -->|No| E[Ignore]
+		        D --> F[Replace FILE_PATH Variable]
+		        F --> G{Select Agent}
+		        G -->|claude_code| H[Claude Code<br/>Full tool access<br/>MCP servers]
+		        G -->|gemini_cli| I[Gemini CLI<br/>Google AI<br/>]
+		        G -->|codex_cli| J[Codex CLI<br/>OpenAI<br/>unimplemented]
+		        H --> K[Stream Response]
+		        I --> K
+		        J --> K
+		        K --> L[Display in Console]
+		        L --> B
+		    end
+		```
+		
+		
+		## How It Works
+		
+		1. **Watch** - Monitors configured directories for file events (create/modify/delete/move)
+		2. **Match** - Checks if dropped files match configured patterns (*.txt, *.json, etc.)
+		3. **Process** - Executes Claude Code with custom prompts to process the files
+		4. **Output** - Rich console display with streaming responses in styled panels
+		
+		## Quick Start
+		
+		```bash
+		# Install uv (if not already installed)
+		curl -LsSf https://astral.sh/uv/install.sh | sh
+		
+		# Setup environment variables (at least Claude Code API key)
+		export ANTHROPIC_API_KEY="your-claude-api-key"
+		export CLAUDE_CODE_PATH="path-to-claude-cli" # default to claude, may need to run which claude to find the path
+		
+		# Run with uv
+		uv run sfs_agentic_drop_zone.py
+		
+		# Drag and drop (copy to reuse) files from example_input_files folder into the drop zone directories
+		cp example_input_files/echo.txt agentic_drop_zone/echo_zone/
+		```
+		
+		## MCP Support
+		
+		- Claude Code supports MCP servers, run `cp .mcp.json.sample .mcp.json` and edit the file with your API keys
+		- Gemini CLI supports MCP servers, run `cp .gemini/settings.json.sample .gemini/settings.json` and edit the file with your API keys
+		- Codex CLI does not support MCP servers without modifying root level `~/.codex/config.toml` (untested)
+		
+		## ⚠️ Dangerous Agent Execution
+		
+		**IMPORTANT:** Agents are given complete control over your system with dangerous execution capabilities. Agent permissions are as follows:
+		
+		- Claude Code runs with `bypassPermissions` mode, which allows all tools without prompting
+		- Gemini CLI runs with `yolo` flag with the `--sandbox` flag, which auto-approves all actions but prevents moving outside of the sandbox directory
+		- Codex CLI (not implemented)
+		
+		**By using this system, you acknowledge the risks and take full responsibility for any actions performed by the agents.**
+		
+		## Configuration (drops.yaml)
+		
+		```yaml
+		drop_zones:
+		  - name: "Image Generation Drop Zone"
+		    file_patterns: ["*.txt", "*.md"]           # File types to watch
+		    reusable_prompt: ".claude/commands/create_image.md"  # Prompt template
+		    zone_dirs: ["generate_images_zone"]        # Directories to monitor
+		    events: ["created"]                        # Trigger on file creation
+		    agent: "claude_code"                       # Agent type
+		    model: "sonnet"                           # Claude model
+		    mcp_server_file: ".mcp.json"              # MCP tools config (optional)
+		    create_zone_dir_if_not_exists: true       # Auto-create directories
+		```
+		
+		## Agents
+		
+		The system supports multiple AI agents with different capabilities:
+		
+		### Claude Code (Most Capable)
+		- 
+		- **Status**: ✅ Fully implemented
+		- **SDK**: Native Python, Typescript, and CLI SDK with streaming support
+		- **Output**: Clean, formatted panels with real-time streaming
+		- **Models**: `sonnet`, `opus`, `haiku`
+		- **MCP Support**: Full MCP tool integration
+		- **Best For**: Complex tasks requiring tool use, SOTA performance
+		- [Documentation](https://docs.anthropic.com/en/docs/claude-code/sdk/sdk-overview)
+		
+		### Gemini CLI
+		- **Status**: 🟡 Implemented with subprocess streaming
+		- **SDK**: No SDK - uses CLI via subprocess
+		- **Output**: Line-by-line streaming in panels (due to CLI limitations)
+		- **Models**: `gemini-2.5-pro` (default), `gemini-2.5-flash`
+		- **Flags**: `--yolo` (auto-approve), `--sandbox` (sandboxing)
+		- **Best For**: Quick tasks, alternative models outside of Anthropic models
+		- [Documentation](https://github.com/google-gemini/gemini-cli)
+		
+		### Codex CLI
+		- **Status**: ❌ Not yet implemented
+		- **SDK**: Would use CLI via subprocess
+		- **Output**: TBD
+		- **Models**: `gpt-5`
+		- **Best For**: Future implementation (Up for a challenge?)
+		- [Documentation](https://github.com/openai/codex)
+		
+		### Configuration Example
+		See `drops.yaml` for agent setup:
+		
+		```yaml
+		- name: "Claude Zone"
+		  agent: "claude_code"
+		  model: "sonnet"
+		  mcp_server_file: ".mcp.json" # specify this or it won't use MCP tools
+		
+		- name: "Gemini Zone"  
+		  agent: "gemini_cli"
+		  model: "gemini-2.5-pro"
+		```
+		
+		## Claude Code SDK Integration
+		
+		Uses `ClaudeSDKClient` with streaming responses:
+		
+		```python
+		async with ClaudeSDKClient(options=ClaudeCodeOptions(
+		    permission_mode="bypassPermissions",
+		    model="sonnet",
+		    mcp_servers=".mcp.json"  # Optional MCP tools
+		)) as client:
+		    await client.query(prompt)
+		    async for message in client.receive_response():
+		        # Stream responses in Rich panels
+		```
+		
+		## Agentic Workflows
+		
+		The system comes with several pre-configured workflows. Each requires specific setup and environment variables:
+		
+		### 🎨 Image Generation Drop Zone
+		**Directory:** `generate_images_zone/`  
+		**File Types:** `*.txt`, `*.md`  
+		**Purpose:** Generate images from text prompts using Replicate AI models
+		
+		**Requirements:**
+		- Environment variable: `REPLICATE_API_TOKEN` (required)
+		- MCP server configuration: `.mcp.json` (copy from `.mcp.json.sample`)
+		- Claude Code with Replicate MCP tools
+		
+		**Usage:** Drop a text file containing image prompts. The system will:
+		- Read each prompt from the file
+		- Generate images using Replicate's models (default: google/nano-banana)
+		- Save images with descriptive names and metadata
+		- Archive the original prompt file
+		- Open the output directory automatically
+		
+		### 🖼️ Image Edit Drop Zone  
+		**Directory:** `edit_images_zone/`  
+		**File Types:** `*.txt`, `*.md`, `*.json`  
+		**Purpose:** Edit existing images using AI models
+		
+		**Requirements:**
+		- Environment variable: `REPLICATE_API_TOKEN` (required)
+		- MCP server configuration: `.mcp.json`
+		- Image URLs or paths in the dropped files
+		
+		**Usage:** Drop files containing image paths/URLs and editing instructions.
+		
+		### 📊 Training Data Generation Zone
+		**Directory:** `training_data_zone/`  
+		**File Types:** `*.csv`, `*.jsonl` (JSON Lines format)  
+		**Purpose:** Analyze data patterns and generate synthetic training data
+		
+		**Requirements:**
+		- No external API keys required
+		- Uses Claude Code's built-in analysis capabilities
+		
+		**Usage:** Drop data files to:
+		- Analyze a sample (100 rows) to understand patterns
+		- Generate 25 additional rows (configurable)
+		- Append new data using efficient bash commands
+		- Create extended datasets without loading into memory
+		- Preserve all original data unchanged
+		
+		**Optimization:** Uses bash append operations to handle large files efficiently
+		
+		### 🎙️ Morning Debrief Zone
+		**Directory:** `morning_debrief_zone/`  
+		**File Types:** `*.mp3`, `*.wav`, `*.m4a`, `*.flac`, `*.ogg`, `*.aac`, `*.mp4`  
+		**Purpose:** Transcribe morning debrief audio recordings and analyze content for engineering ideas and priorities
+		
+		**Requirements:**
+		- OpenAI Whisper installed: `uv tool install openai-whisper`
+		- No API keys required (runs locally)
+		
+		**Usage:** Drop audio files to:
+		- Transcribe using Whisper's tiny model (fast, English)
+		- Extract top 3 priorities from discussions
+		- Identify key engineering ideas
+		- Generate novel extensions and leading questions
+		- Create structured debrief documents with:
+		  - Date and quarter tracking
+		  - Formatted transcript with bulleted sentences
+		  - Direct commands extracted from transcript
+		- Archive original audio files after processing
+		
+		**Output:** Generates markdown debrief files with comprehensive analysis in `morning_debrief_zone/debrief_output/<date_time>/`
+		
+		## Improvements
+		
+		- The `zone_dirs` should be a single directory (`zone_dir`), and this should be passed into each prompt as a prompt variable (## Variables) and used to create the output directory. Right now it's static in the respective prompts.
+		- Get Codex CLI working (they don't have support for local .codex/config.toml at the time of writing)
+		- Improve `Gemini CLI` streaming output to be more readable and less line by line based. They don't have an SDK, so we're using the CLI.
+		
+		## Master AI Coding 
+		
+		Learn to code with AI with foundational [Principles of AI Coding](https://agenticengineer.com/principled-ai-coding?y=adrzone)
+		
+		Follow the [IndyDevDan youtube channel](https://www.youtube.com/@indydevdan) for more Agentic Coding tips and tricks.]]></file>
+	<file path='sfs_agentic_drop_zone.py'>
+		#!/usr/bin/env python3
+		# /// script
+		# requires-python = ">=3.11"
+		# dependencies = [
+		#     "claude-code-sdk",
+		#     "pydantic",
+		#     "watchdog",
+		#     "pyyaml",
+		#     "python-dotenv",
+		#     "rich",
+		# ]
+		# ///
+		
+		"""Agentic Drop Zone - File monitoring and processing system."""
+		
+		import asyncio
+		import logging
+		import os
+		import yaml
+		from enum import Enum
+		from pathlib import Path
+		from typing import Any, Optional, Literal
+		
+		from dotenv import load_dotenv
+		from pydantic import BaseModel, Field, field_validator
+		from rich.console import Console
+		from rich.live import Live
+		from rich.panel import Panel
+		from rich.text import Text
+		from watchdog.observers import Observer
+		from watchdog.events import (
+		    FileSystemEventHandler,
+		    FileSystemEvent,
+		    EVENT_TYPE_CREATED,
+		    EVENT_TYPE_MODIFIED,
+		    EVENT_TYPE_DELETED,
+		    EVENT_TYPE_MOVED,
+		)
+		from claude_code_sdk import ClaudeSDKClient, ClaudeCodeOptions
+		
+		# Load environment variables
+		load_dotenv()
+		
+		# Constants
+		FILE_PATH_PLACEHOLDER = "[[FILE_PATH]]"
+		
+		
+		# Environment variable checks
+		def check_environment_variables():
+		    """Check for required environment variables at startup."""
+		    required_vars = {
+		        "ANTHROPIC_API_KEY": "Required for Claude Code SDK authentication",
+		        "CLAUDE_CODE_PATH": "Required path to Claude CLI executable",
+		    }
+		
+		    optional_vars = {
+		        "REPLICATE_API_TOKEN": "Optional - needed for image generation/editing (won't be able to generate images without it)"
+		    }
+		
+		    missing_required = []
+		
+		    # Check required variables
+		    for var, description in required_vars.items():
+		        if not os.getenv(var):
+		            missing_required.append(f"  - {var}: {description}")
+		
+		    # Display missing required variables
+		    if missing_required:
+		        console.print("[bold red]❌ Missing required environment variables:[/bold red]")
+		        for item in missing_required:
+		            console.print(f"[red]{item}[/red]")
+		        console.print(
+		            "\n[yellow]Please set these in your .env file or environment[/yellow]"
+		        )
+		        raise EnvironmentError("Missing required environment variables")
+		
+		    # Check optional variables and display warnings
+		    missing_optional = []
+		    for var, description in optional_vars.items():
+		        if not os.getenv(var):
+		            missing_optional.append(f"  - {var}: {description}")
+		
+		    if missing_optional:
+		        console.print("[yellow]⚠️  Optional environment variables not set:[/yellow]")
+		        for item in missing_optional:
+		            console.print(f"[dim]{item}[/dim]")
+		        console.print()
+		
+		    console.print("[green]✅ All required environment variables are set[/green]")
+		
+		
+		# Configure logging
+		logging.basicConfig(
+		    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+		)
+		logger = logging.getLogger(__name__)
+		
+		# Initialize Rich console
+		console = Console()
+		
+		
+		class EventType(str, Enum):
+		    """Supported file system event types."""
+		
+		    CREATED = "created"
+		    MODIFIED = "modified"
+		    DELETED = "deleted"
+		    MOVED = "moved"
+		
+		
+		class AgentType(str, Enum):
+		    """Supported agent types."""
+		
+		    CLAUDE_CODE = "claude_code"
+		    GEMINI_CLI = "gemini_cli"
+		    CODEX_CLI = "codex_cli"
+		
+		
+		class PromptArgs(BaseModel):
+		    """Arguments for prompt processing."""
+		
+		    reusable_prompt: str = Field(description="Path to the reusable prompt file")
+		    file_path: str = Field(description="Path to the file being processed")
+		    model: Optional[str] = Field(
+		        default=None, description="Model to use for processing"
+		    )
+		    mcp_server_file: Optional[str] = Field(
+		        default=None, description="Path to MCP server configuration file (JSON or YAML)"
+		    )
+		    zone_name: Optional[str] = Field(default=None, description="Name of the drop zone")
+		    zone_color: Optional[str] = Field(
+		        default="cyan", description="Color for the drop zone"
+		    )
+		
+		
+		class DropZone(BaseModel):
+		    """Configuration for a single drop zone."""
+		
+		    name: str = Field(description="Name of the drop zone")
+		    file_patterns: list[str] = Field(description="File patterns to watch (e.g., *.txt)")
+		    reusable_prompt: str = Field(
+		        description="Path to the reusable prompt file (e.g., .claude/commands/echo.md)"
+		    )
+		    zone_dirs: list[str] = Field(
+		        description="List of directories to monitor (supports * wildcard)"
+		    )
+		    events: list[EventType] = Field(
+		        default=[EventType.CREATED], description="Event types to respond to"
+		    )
+		    agent: AgentType = Field(
+		        default=AgentType.CLAUDE_CODE, description="Agent type to use for processing"
+		    )
+		    model: Optional[str] = Field(
+		        default="sonnet",
+		        description="Model to use for Claude Code (e.g., 'sonnet', 'opus', 'haiku')",
+		    )
+		    mcp_server_file: Optional[str] = Field(
+		        default=None, description="Path to MCP server configuration file (JSON or YAML)"
+		    )
+		    color: Optional[str] = Field(
+		        default="cyan",
+		        description="Color for console output (e.g., 'red', 'blue', 'green', 'cyan', 'yellow', 'magenta')",
+		    )
+		    create_zone_dir_if_not_exists: bool = Field(
+		        default=False,
+		        description="Create zone directory if it doesn't exist (non-glob patterns only)",
+		    )
+		
+		    @field_validator("zone_dirs")
+		    @classmethod
+		    def validate_zone_dirs(cls, v: list[str]) -> list[str]:
+		        if not v:
+		            raise ValueError("zone_dirs must contain at least one directory")
+		        return v
+		
+		    @field_validator("events")
+		    @classmethod
+		    def validate_events(cls, v: list[EventType]) -> list[EventType]:
+		        if not v:
+		            raise ValueError("events must contain at least one event type")
+		        return v
+		
+		
+		class DropsConfig(BaseModel):
+		    """Root configuration for all drop zones."""
+		
+		    drop_zones: list[DropZone] = Field(description="List of configured drop zones")
+		
+		
+		class Agents:
+		    """Agent implementations for processing drop zone files."""
+		
+		    @staticmethod
+		    def build_prompt(reusable_prompt_path: str, file_path: str) -> str:
+		        """Build the full prompt by loading from file and replacing variables.
+		
+		        Args:
+		            reusable_prompt_path: Path to the prompt file
+		            file_path: Path to the dropped file being processed
+		
+		        Returns:
+		            The constructed prompt with variables replaced
+		
+		        Raises:
+		            FileNotFoundError: If the prompt file doesn't exist
+		            Exception: If unable to read the prompt file
+		        """
+		        prompt_path = Path(reusable_prompt_path)
+		
+		        # Ensure prompt file exists
+		        if not prompt_path.exists():
+		            error_msg = f"Reusable prompt file not found: {reusable_prompt_path}"
+		            console.print(f"[bold red]❌ {error_msg}[/bold red]")
+		            raise FileNotFoundError(error_msg)
+		
+		        if not prompt_path.is_file():
+		            error_msg = f"Reusable prompt path is not a file: {reusable_prompt_path}"
+		            console.print(f"[bold red]❌ {error_msg}[/bold red]")
+		            raise ValueError(error_msg)
+		
+		        # Load prompt from file
+		        console.print(f"[dim]   Loading prompt: {reusable_prompt_path}[/dim]")
+		        try:
+		            prompt_content = prompt_path.read_text()
+		        except Exception as e:
+		            error_msg = f"Failed to read prompt file {reusable_prompt_path}: {e}"
+		            console.print(f"[bold red]❌ {error_msg}[/bold red]")
+		            raise Exception(error_msg) from e
+		
+		        # Replace FILE_PATH_PLACEHOLDER with actual file path
+		        if FILE_PATH_PLACEHOLDER in prompt_content:
+		            prompt_content = prompt_content.replace(FILE_PATH_PLACEHOLDER, file_path)
+		
+		        return prompt_content
+		
+		    @staticmethod
+		    async def prompt_claude_code(args: PromptArgs) -> None:
+		        """Process a file using Claude Code SDK."""
+		        # Build full prompt using the build_prompt method
+		        full_prompt = Agents.build_prompt(args.reusable_prompt, args.file_path)
+		
+		        console.print(f"[cyan]ℹ️  Processing prompt with Claude Code...[/cyan]")
+		        if args.model:
+		            console.print(f"[dim]   Model: {args.model}[/dim]")
+		
+		        # Get CLI path from environment or use default
+		        cli_path = os.getenv("CLAUDE_CODE_PATH", "claude")
+		
+		        # If a custom path is set, update PATH environment variable
+		        if cli_path != "claude":
+		            # Extract directory from the CLI path
+		            cli_dir = os.path.dirname(cli_path) if os.path.dirname(cli_path) else "."
+		            current_path = os.environ.get("PATH", "")
+		            if cli_dir not in current_path:
+		                os.environ["PATH"] = f"{cli_dir}:{current_path}"
+		
+		        # Create options with bypassPermissions mode and optional model
+		        options_dict = {
+		            "permission_mode": "bypassPermissions"  # Bypass all permission prompts
+		        }
+		
+		        # Add model if specified
+		        if args.model:
+		            # Try the model value as-is first, if it fails, try with claude- prefix
+		            options_dict["model"] = args.model
+		
+		        # Add MCP server file if specified
+		        if args.mcp_server_file:
+		            # Claude SDK accepts file paths directly and will handle loading
+		            options_dict["mcp_servers"] = args.mcp_server_file
+		            console.print(f"[dim]   MCP config: {args.mcp_server_file}[/dim]")
+		
+		        options = ClaudeCodeOptions(**options_dict)
+		
+		        # Minimal Claude Code setup - let errors propagate
+		        async with ClaudeSDKClient(options=options) as client:
+		            await client.query(full_prompt)
+		
+		            # Stream response - output panels as content arrives
+		            file_name = Path(args.file_path).name
+		            has_response = False
+		            zone_workflow = (
+		                f"{args.zone_name} Workflow" if args.zone_name else "Workflow"
+		            )
+		            panel_color = args.zone_color or "cyan"
+		
+		            async for message in client.receive_response():
+		                if hasattr(message, "content"):
+		                    for block in message.content:
+		                        if hasattr(block, "text") and block.text.strip():
+		                            has_response = True
+		                            # Output each text block in its own panel
+		                            console.print(
+		                                Panel(
+		                                    Text(block.text),
+		                                    title=f"[bold {panel_color}]🤖 Claude Code • {zone_workflow}[/bold {panel_color}]",
+		                                    subtitle=f"[dim]{file_name}[/dim]",
+		                                    border_style=panel_color,
+		                                    expand=False,
+		                                    padding=(1, 2),
+		                                )
+		                            )
+		
+		            # If no response was received
+		            if not has_response:
+		                console.print(
+		                    Panel(
+		                        Text("[yellow]No response received[/yellow]"),
+		                        title=f"[bold yellow]🤖 Claude Code • {zone_workflow}[/bold yellow]",
+		                        subtitle=f"[dim]{file_name}[/dim]",
+		                        border_style="yellow",
+		                        expand=False,
+		                        padding=(1, 2),
+		                    )
+		                )
+		
+		            console.print()
+		
+		    @staticmethod
+		    async def prompt_gemini_cli(args: PromptArgs) -> None:
+		        """Process a file using Gemini CLI."""
+		        # Build full prompt using the build_prompt method
+		        full_prompt = Agents.build_prompt(args.reusable_prompt, args.file_path)
+		
+		        console.print(f"[green]ℹ️  Processing prompt with Gemini CLI...[/green]")
+		        if args.model:
+		            console.print(f"[dim]   Model: {args.model}[/dim]")
+		
+		        # Get CLI path from environment or use default
+		        gemini_path = os.getenv("GEMINI_CLI_PATH", "gemini")
+		
+		        # Build command with flags
+		        cmd = [
+		            gemini_path,
+		            "--yolo",      # Auto-approve all tool calls
+		            "--sandbox",   # Enable sandboxing by default
+		            "-m", args.model or "gemini-2.5-pro",  # Model
+		            "-p", full_prompt  # Non-interactive prompt
+		        ]
+		
+		        console.print(f"[dim]   Command: {' '.join(cmd[:4])}...[/dim]")
+		
+		        try:
+		            # Create subprocess with asyncio
+		            process = await asyncio.create_subprocess_exec(
+		                *cmd,
+		                stdout=asyncio.subprocess.PIPE,
+		                stderr=asyncio.subprocess.PIPE,
+		                env=os.environ.copy()  # Pass environment variables
+		            )
+		
+		            # Prepare for streaming display
+		            file_name = Path(args.file_path).name
+		            zone_workflow = (
+		                f"{args.zone_name} Workflow" if args.zone_name else "Workflow"
+		            )
+		            panel_color = args.zone_color or "green"
+		            has_output = False
+		
+		            async def read_stream(stream, is_stderr=False):
+		                """Read and display stream output line by line."""
+		                nonlocal has_output
+		                while True:
+		                    line = await stream.readline()
+		                    if not line:
+		                        break
+		                    
+		                    decoded = line.decode('utf-8', errors='replace').rstrip()
+		                    if decoded:  # Only process non-empty lines
+		                        has_output = True
+		                        # Print each line in its own panel
+		                        console.print(
+		                            Panel(
+		                                Text(decoded),
+		                                title=f"[bold {panel_color}]🤖 Gemini CLI • {zone_workflow}[/bold {panel_color}]",
+		                                subtitle=f"[dim]{file_name}[/dim]",
+		                                border_style=panel_color,
+		                                expand=False,
+		                                padding=(1, 2),
+		                            )
+		                        )
+		
+		            # Handle both streams concurrently
+		            await asyncio.gather(
+		                read_stream(process.stdout, is_stderr=False),
+		                read_stream(process.stderr, is_stderr=True)
+		            )
+		
+		            # Wait for process to complete
+		            return_code = await process.wait()
+		            
+		            # Print completion status if needed
+		            if return_code != 0:
+		                console.print(
+		                    f"\n[yellow]⚠️ Process exited with code {return_code}[/yellow]"
+		                )
+		            
+		            # If no output was received, show a message
+		            if not has_output:
+		                console.print(
+		                    Panel(
+		                        "[yellow]No output received[/yellow]",
+		                        title=f"[bold yellow]🤖 Gemini CLI • {zone_workflow}[/bold yellow]",
+		                        subtitle=f"[dim]{file_name}[/dim]",
+		                        border_style="yellow",
+		                        expand=False,
+		                        padding=(1, 2),
+		                    )
+		                )
+		
+		        except FileNotFoundError:
+		            console.print(
+		                f"[bold red]❌ Gemini CLI not found at '{gemini_path}'[/bold red]"
+		            )
+		            console.print(
+		                "[yellow]Please install Gemini CLI: npm install -g @google/gemini-cli[/yellow]"
+		            )
+		            console.print(
+		                "[dim]Or set GEMINI_CLI_PATH environment variable to the correct path[/dim]"
+		            )
+		        except Exception as e:
+		            console.print(f"[bold red]❌ Error running Gemini CLI: {e}[/bold red]")
+		
+		        console.print()
+		
+		    @staticmethod
+		    async def prompt_codex_cli(args: PromptArgs) -> None:
+		        """Process a file using Codex CLI."""
+		        # Build full prompt using the build_prompt method
+		        full_prompt = Agents.build_prompt(args.reusable_prompt, args.file_path)
+		
+		        # TODO: Implement Codex CLI integration
+		        raise NotImplementedError("Codex CLI agent not yet implemented")
+		
+		    @staticmethod
+		    async def process_with_agent(agent: AgentType, args: PromptArgs) -> None:
+		        """Route to appropriate agent based on type."""
+		        try:
+		            if agent == AgentType.CLAUDE_CODE:
+		                await Agents.prompt_claude_code(args)
+		            elif agent == AgentType.GEMINI_CLI:
+		                await Agents.prompt_gemini_cli(args)
+		            elif agent == AgentType.CODEX_CLI:
+		                await Agents.prompt_codex_cli(args)
+		            else:
+		                raise ValueError(f"Unknown agent type: {agent}")
+		        except Exception as e:
+		            console.print(f"[bold red]❌ Agent processing failed: {e}[/bold red]")
+		
+		
+		class DropZoneHandler(FileSystemEventHandler):
+		    """Handle file system events in the drop zone."""
+		
+		    def __init__(self, drop_zone: DropZone):
+		        self.drop_zone = drop_zone
+		        super().__init__()
+		
+		    def _should_process_event(self, event_type: str) -> bool:
+		        """Check if this event type should be processed."""
+		        event_map = {
+		            EVENT_TYPE_CREATED: EventType.CREATED,
+		            EVENT_TYPE_MODIFIED: EventType.MODIFIED,
+		            EVENT_TYPE_DELETED: EventType.DELETED,
+		            EVENT_TYPE_MOVED: EventType.MOVED,
+		        }
+		        return event_map.get(event_type) in self.drop_zone.events
+		
+		    def on_created(self, event: FileSystemEvent) -> None:
+		        """Handle file creation events."""
+		        if not event.is_directory and self._should_process_event(EVENT_TYPE_CREATED):
+		            console.print(f"[green]✨ File created: {event.src_path}[/green]")
+		            self.process_file(event.src_path)
+		
+		    def on_modified(self, event: FileSystemEvent) -> None:
+		        """Handle file modification events."""
+		        if not event.is_directory and self._should_process_event(EVENT_TYPE_MODIFIED):
+		            console.print(f"[yellow]📝 File modified: {event.src_path}[/yellow]")
+		            self.process_file(event.src_path)
+		
+		    def on_deleted(self, event: FileSystemEvent) -> None:
+		        """Handle file deletion events."""
+		        if not event.is_directory and self._should_process_event(EVENT_TYPE_DELETED):
+		            console.print(f"[red]🗑️  File deleted: {event.src_path}[/red]")
+		            self.process_file(event.src_path)
+		
+		    def on_moved(self, event: FileSystemEvent) -> None:
+		        """Handle file move events."""
+		        if not event.is_directory and self._should_process_event(EVENT_TYPE_MOVED):
+		            console.print(
+		                f"[blue]📦 File moved: {event.src_path} -> {event.dest_path}[/blue]"
+		            )
+		            self.process_file(
+		                event.dest_path if hasattr(event, "dest_path") else event.src_path
+		            )
+		
+		    def process_file(self, file_path: str) -> None:
+		        """Process a file that has been added or modified."""
+		        path = Path(file_path)
+		
+		        # Check if file matches any of the configured patterns
+		        if not any(path.match(pattern) for pattern in self.drop_zone.file_patterns):
+		            # Silent return - no need to log non-matching files
+		            return
+		
+		        zone_color = self.drop_zone.color or "green"
+		        console.print(
+		            f"\n[bold {zone_color}]📁 Drop Zone: {self.drop_zone.name}[/bold {zone_color}]"
+		        )
+		        console.print(f"[yellow]   File: {file_path}[/yellow]")
+		        console.print(f"[dim]   Agent: {self.drop_zone.agent}[/dim]")
+		        console.print(f"[dim]   Prompt: {self.drop_zone.reusable_prompt}[/dim]")
+		        if self.drop_zone.model:
+		            console.print(f"[dim]   Model: {self.drop_zone.model}[/dim]")
+		        if self.drop_zone.mcp_server_file:
+		            console.print(f"[dim]   MCP: {self.drop_zone.mcp_server_file}[/dim]")
+		
+		        # Create PromptArgs
+		        prompt_args = PromptArgs(
+		            reusable_prompt=self.drop_zone.reusable_prompt,
+		            file_path=file_path,
+		            model=self.drop_zone.model,
+		            mcp_server_file=self.drop_zone.mcp_server_file,
+		            zone_name=self.drop_zone.name,
+		            zone_color=self.drop_zone.color,
+		        )
+		
+		        # Run the agent in a new event loop since watchdog runs in a different thread
+		        asyncio.run(Agents.process_with_agent(self.drop_zone.agent, prompt_args))
+		
+		
+		class AgenticDropZone:
+		    """Main application class for the Agentic Drop Zone."""
+		
+		    def __init__(self, config_file: Path = Path("drops.yaml")):
+		        self.config_file = config_file
+		        self.config: Optional[DropsConfig] = None
+		        self.observers: list[Observer] = []
+		        self.base_path = Path.cwd()
+		
+		    def load_config(self) -> None:
+		        """Load configuration from YAML file."""
+		        try:
+		            if not self.config_file.exists():
+		                error_msg = f"Configuration file not found: {self.config_file}"
+		                console.print(f"[bold red]❌ {error_msg}[/bold red]")
+		                raise FileNotFoundError(error_msg)
+		
+		            with open(self.config_file, "r") as f:
+		                data = yaml.safe_load(f)
+		
+		            self.config = DropsConfig(**data)
+		            console.print(
+		                f"[green]✅ Loaded configuration from {self.config_file}[/green]"
+		            )
+		            console.print(
+		                f"[cyan]   Found {len(self.config.drop_zones)} drop zone(s)[/cyan]"
+		            )
+		        except FileNotFoundError:
+		            raise
+		        except Exception as e:
+		            console.print(f"[bold red]❌ Error loading configuration: {e}[/bold red]")
+		            raise
+		
+		    def _expand_zone_dirs(self, drop_zone: DropZone) -> list[Path]:
+		        """Expand zone_dirs patterns to actual directories."""
+		        expanded_dirs = []
+		
+		        for zone_dir in drop_zone.zone_dirs:
+		            if "*" in zone_dir:
+		                # Simple wildcard support - just use the pattern as-is
+		                matching_dirs = list(self.base_path.glob(zone_dir))
+		                # Filter to only directories
+		                matching_dirs = [d for d in matching_dirs if d.is_dir()]
+		                if matching_dirs:
+		                    expanded_dirs.extend(matching_dirs)
+		                    console.print(
+		                        f"[dim]   Pattern '{zone_dir}' matched {len(matching_dirs)} directories: {[d.name for d in matching_dirs]}[/dim]"
+		                    )
+		                else:
+		                    console.print(
+		                        f"[yellow]⚠️  Pattern '{zone_dir}' matched no directories[/yellow]"
+		                    )
+		            else:
+		                # Direct directory path (non-glob)
+		                dir_path = self.base_path / zone_dir
+		                if dir_path.exists() and dir_path.is_dir():
+		                    expanded_dirs.append(dir_path)
+		                elif not dir_path.exists():
+		                    # Directory doesn't exist
+		                    if drop_zone.create_zone_dir_if_not_exists:
+		                        # Create the directory
+		                        try:
+		                            dir_path.mkdir(parents=True, exist_ok=True)
+		                            console.print(
+		                                f"[green]✅ Created zone directory: {dir_path}[/green]"
+		                            )
+		                            expanded_dirs.append(dir_path)
+		                        except Exception as e:
+		                            console.print(
+		                                f"[bold red]❌ Failed to create directory {dir_path}: {e}[/bold red]"
+		                            )
+		                    else:
+		                        # Log error and ask user to create it
+		                        console.print(
+		                            f"[bold red]❌ Zone directory does not exist: {dir_path}[/bold red]"
+		                        )
+		                        console.print(
+		                            f"[yellow]   Please create the directory manually: mkdir -p {dir_path}[/yellow]"
+		                        )
+		                        console.print(
+		                            f"[dim]   Or set 'create_zone_dir_if_not_exists: true' in drops.yaml for zone '{drop_zone.name}'[/dim]"
+		                        )
+		                else:
+		                    console.print(
+		                        f"[yellow]⚠️  Path exists but is not a directory: {dir_path}[/yellow]"
+		                    )
+		
+		        return expanded_dirs
+		
+		    def start(self) -> None:
+		        """Start monitoring all configured drop zones."""
+		        if not self.config:
+		            raise RuntimeError("Configuration not loaded. Call load_config() first.")
+		
+		        for drop_zone in self.config.drop_zones:
+		            # Expand zone_dirs patterns
+		            zone_paths = self._expand_zone_dirs(drop_zone)
+		
+		            if not zone_paths:
+		                console.print(
+		                    f"[yellow]⚠️  No valid directories found for drop zone '{drop_zone.name}'[/yellow]"
+		                )
+		                continue
+		
+		            # Create observer for each directory
+		            for zone_path in zone_paths:
+		                observer = Observer()
+		                handler = DropZoneHandler(drop_zone)
+		
+		                # Schedule non-recursive watching
+		                observer.schedule(handler, str(zone_path), recursive=False)
+		                observer.start()
+		                self.observers.append(observer)
+		
+		                zone_color = drop_zone.color or "green"
+		                console.print(
+		                    f"\n[bold {zone_color}]✅ Started monitoring drop zone: {drop_zone.name}[/bold {zone_color}]"
+		                )
+		                console.print(f"[cyan]   📂 Path: {zone_path}[/cyan]")
+		                console.print(f"[dim]   - Patterns: {drop_zone.file_patterns}[/dim]")
+		                console.print(
+		                    f"[dim]   - Events: {[e.value for e in drop_zone.events]}[/dim]"
+		                )
+		                console.print(f"[dim]   - Prompt: {drop_zone.reusable_prompt}[/dim]")
+		                if drop_zone.model:
+		                    console.print(f"[dim]   - Model: {drop_zone.model}[/dim]")
+		                if drop_zone.mcp_server_file:
+		                    console.print(f"[dim]   - MCP: {drop_zone.mcp_server_file}[/dim]")
+		
+		        if self.observers:
+		            console.print(
+		                f"\n[bold cyan]🎯 Total observers started: {len(self.observers)}[/bold cyan]"
+		            )
+		            console.print("[dim]Press Ctrl+C to stop...[/dim]\n")
+		        else:
+		            console.print(
+		                "[bold red]⚠️ No observers started. Check your configuration.[/bold red]"
+		            )
+		
+		    def stop(self) -> None:
+		        """Stop monitoring all drop zones."""
+		        for observer in self.observers:
+		            observer.stop()
+		
+		        for observer in self.observers:
+		            observer.join()
+		
+		        console.print(f"[yellow]🛑 Stopped {len(self.observers)} observer(s)[/yellow]")
+		        self.observers.clear()
+		
+		    async def run(self) -> None:
+		        """Run the drop zone monitor."""
+		        self.load_config()
+		        self.start()
+		        try:
+		            while True:
+		                await asyncio.sleep(1)
+		        except KeyboardInterrupt:
+		            console.print("\n[yellow]⚡ Received interrupt signal[/yellow]")
+		        finally:
+		            self.stop()
+		
+		
+		async def main():
+		    """Main entry point."""
+		    # Display startup banner
+		    console.print("\n[bold cyan]═══════════════════════════════════════[/bold cyan]")
+		    console.print("[bold cyan]      🚀 Agentic Drop Zone 🚀[/bold cyan]")
+		    console.print("[bold cyan]═══════════════════════════════════════[/bold cyan]\n")
+		
+		    # Check environment variables
+		    check_environment_variables()
+		
+		    drop_zone = AgenticDropZone(config_file=Path("drops.yaml"))
+		    await drop_zone.run()
+		
+		
+		if __name__ == "__main__":
+		    asyncio.run(main())</file>
+	<file path='specs/simple_multi_processing_solution.md'>
+		# Simple Multi-Processing Solution for Agentic Drop Zone
+		
+		## Overview
+		Implement a queue-based async worker pool to parallelize Claude Code processing without blocking file detection.
+		
+		## Core Principle
+		**Decouple detection from processing** - Observers detect and enqueue, workers process asynchronously.
+		
+		## Architecture
+		
+		```
+		File System Events
+		       ↓
+		[Observer Threads] → [Async Queue] → [Worker Pool] → Claude Code
+		                           ↑              ↓
+		                      Priority/FIFO    Concurrent
+		                                      Processing
+		```
+		
+		## Implementation Plan
+		
+		### Phase 1: Add Queue Infrastructure
+		
+		#### 1.1 Create ProcessingQueue Class
+		```python
+		class ProcessingQueue:
+		    - asyncio.Queue with priority support
+		    - Track pending/processing/completed items
+		    - Handle backpressure (max queue size)
+		    - Simple FIFO with optional priority by zone
+		```
+		
+		#### 1.2 Create WorkerPool Class
+		```python
+		class WorkerPool:
+		    - Fixed number of async workers (default: 3)
+		    - Each worker pulls from queue independently
+		    - Graceful shutdown on Ctrl+C
+		    - Error isolation per worker
+		```
+		
+		### Phase 2: Modify Existing Components
+		
+		#### 2.1 Update DropZoneHandler
+		- Change `process_file()` to `enqueue_file()`
+		- Simply add file + metadata to queue
+		- Return immediately (non-blocking)
+		- Log queue depth for monitoring
+		
+		#### 2.2 Update Agents Class
+		- Keep existing methods unchanged
+		- Add new `process_from_queue()` method
+		- Maintains backward compatibility
+		
+		#### 2.3 Update AgenticDropZone
+		- Initialize queue and worker pool on start
+		- Start workers before observers
+		- Cleanup workers on shutdown
+		- Add queue stats to status display
+		
+		### Phase 3: Configuration
+		
+		Add to `drops.yaml`:
+		```yaml
+		processing:
+		  max_workers: 3  # Number of concurrent Claude Code instances
+		  queue_size: 100  # Max items in queue before blocking
+		  timeout: 300  # Seconds before killing stuck process
+		```
+		
+		## Key Design Decisions
+		
+		### Why Async Workers Not Threads?
+		- Claude SDK already uses async/await
+		- Better resource utilization
+		- Easier cancellation and timeout handling
+		- Single event loop for all workers
+		
+		### Why Not Subprocesses?
+		- Avoid spawning overhead
+		- Simpler state management
+		- Shared MCP server connections
+		- Better error propagation
+		
+		### Queue Strategy
+		- **FIFO by default** - Simple and predictable
+		- **Optional priority** - By zone or file pattern
+		- **Backpressure** - Block new events if queue full
+		- **Persistence** - Optional queue state to survive crashes
+		
+		## Benefits
+		
+		1. **True Parallelism** - Process N files simultaneously
+		2. **Non-blocking Detection** - Never miss file events
+		3. **Resource Control** - Limit concurrent CC instances
+		4. **Graceful Degradation** - Queue absorbs bursts
+		5. **Simple to Implement** - ~200 lines of code change
+		
+		## Migration Path
+		
+		### Step 1: Minimal Change (Quick Win)
+		- Add queue between detection and processing
+		- Single worker initially (maintains current behavior)
+		- Test thoroughly
+		
+		### Step 2: Enable Concurrency
+		- Increase workers to 3
+		- Monitor resource usage
+		- Tune based on workload
+		
+		### Step 3: Advanced Features (Optional)
+		- Priority queues per zone
+		- Dynamic worker scaling
+		- Queue persistence
+		- Retry logic
+		
+		## Error Handling
+		
+		- **Worker Crash**: Restart worker, requeue item
+		- **CC Timeout**: Kill process, log error, continue
+		- **Queue Full**: Log warning, drop oldest item
+		- **Shutdown**: Drain queue gracefully
+		
+		## Monitoring
+		
+		Display in console:
+		```
+		📊 Processing Status:
+		   Queue: 5 pending | 3 processing
+		   Workers: 3/3 active
+		   Completed: 127 files
+		   Errors: 2
+		```
+		
+		## Testing Strategy
+		
+		1. **Burst Test**: Drop 20 files simultaneously
+		2. **Sustained Load**: 1 file/second for 5 minutes
+		3. **Error Recovery**: Kill worker mid-process
+		4. **Resource Limits**: Max out queue and workers
+		
+		## Implementation Effort
+		
+		- **Estimated LOC**: ~200 lines added/modified
+		- **Risk**: Low (queue pattern is well-understood)
+		- **Complexity**: Medium (async coordination)
+		- **Time**: 4-6 hours to implement and test
+		
+		## Alternative Consideration
+		
+		If this proves too complex, fallback to:
+		- Simple `asyncio.create_task()` without await
+		- No queue, just fire-and-forget
+		- Accept occasional resource exhaustion
+		- 50 lines of code change
+		
+		## Success Criteria
+		
+		✅ Can process 5+ files simultaneously
+		✅ File detection never blocked
+		✅ Graceful shutdown preserves queue state
+		✅ Clear visibility into processing status
+		✅ No more than 2x current code complexity</file>
+</files>
