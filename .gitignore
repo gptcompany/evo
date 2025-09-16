@@ -1,8 +1,3 @@
-# Hidden files and directories (all files/folders starting with .)
-.serena
-.mcp.*
-.mcp.json
-
 # Python
 __pycache__/
 *.py[cod]
@@ -122,10 +117,15 @@ tmp/
 temp/
 .trash_cleanup/
 
-
+# Hidden files and directories (all files/folders starting with .)
+.serena
+.mcp.*
+.mcp.json
 
 # Claude Code sensitive config
 .claude/settings.json
+.claude/context_bundles/
+.claude/logs/
 
 output
 outputs/
