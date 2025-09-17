@@ -1,0 +1,177 @@
+{
+  "session_id": "7a519e0f-0505-4b6b-938c-d07789eb41dc",
+  "created_at": "2025-09-16T17:32:24.810223",
+  "operations": [
+    {
+      "operation": "grep",
+      "timestamp": "2025-09-16T17:32:24.810241",
+      "pattern": "\"wolframalpha\"",
+      "path": "/home/sam/EVO/.claude_back.json",
+      "output_mode": "content"
+    },
+    {
+      "operation": "grep",
+      "timestamp": "2025-09-16T17:32:35.203119",
+      "pattern": "\"matlab-mcp-server\"",
+      "path": "/home/sam/EVO/.claude_back.json",
+      "output_mode": "content"
+    },
+    {
+      "operation": "edit",
+      "timestamp": "2025-09-16T17:32:42.504047",
+      "file_path": "/home/sam/EVO/.mcp.research.json",
+      "old_string": "    \"wolframalpha\": {\n      \"command\": \"node\",\n      \"args\": [\"/home/sam/wolframalpha-llm-mcp/build/..."
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T18:04:54.110080",
+      "todo_count": 7
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:04:55.414220",
+      "command": "timeout 10s npx vibe-kanban --mcp || echo \"Test completato\"",
+      "description": "Test avvio vibe-kanban MCP server"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T18:05:06.022704",
+      "todo_count": 7
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:05:07.441039",
+      "command": "timeout 10s npx -y @upstash/context7-mcp || echo \"Test completato\"",
+      "description": "Test avvio context7 MCP server"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T18:05:26.312980",
+      "todo_count": 7
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:05:27.768276",
+      "command": "timeout 10s npx -y gemini-mcp-tool || echo \"Test completato\"",
+      "description": "Test avvio gemini-cli MCP server"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T18:05:48.456775",
+      "todo_count": 7
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:05:50.086863",
+      "command": "cd /home/sam/wolframalpha-llm-mcp && timeout 10s WOLFRAM_LLM_APP_ID=VYR43J-GW3TWJ9G3K node build/index.js || echo \"Test completato\"",
+      "description": "Test avvio WolframAlpha MCP server"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:05:56.116925",
+      "command": "cd /home/sam/wolframalpha-llm-mcp && timeout 10s env WOLFRAM_LLM_APP_ID=VYR43J-GW3TWJ9G3K node build/index.js || echo \"Test completato\"",
+      "description": "Test avvio WolframAlpha MCP server con env"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T18:06:14.505696",
+      "todo_count": 7
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:06:16.164111",
+      "command": "cd /home/sam/matlab-mcp-server && timeout 10s node build/index.js || echo \"Test completato\"",
+      "description": "Test avvio MATLAB MCP server"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T18:06:37.501876",
+      "todo_count": 7
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:06:39.120284",
+      "command": "cd /home/sam/paper-search-mcp && timeout 10s .venv/bin/python -m paper_search_mcp.server || echo \"Test completato\"",
+      "description": "Test avvio paper-search-mcp server"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T18:06:58.164407",
+      "todo_count": 7
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:06:59.808373",
+      "command": "timeout 10s /home/sam/.local/bin/serena start-mcp-server --context ide-assistant --project /home/sam/EVO || echo \"Test completato\"",
+      "description": "Test avvio serena MCP server"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T18:07:20.792915",
+      "todo_count": 7
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T18:16:36.195256",
+      "todo_count": 4
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:16:37.912867",
+      "command": "ls -la /home/sam/downloads/ | grep -i matlab",
+      "description": "Verificare presenza file MATLAB"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:16:46.312169",
+      "command": "find /home/sam -name \"*matlab*\" -type f 2>/dev/null",
+      "description": "Cercare file MATLAB nella home"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T18:16:59.348881",
+      "todo_count": 4
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:17:01.215536",
+      "command": "cd /home/sam/Downloads && ls -lh matlab_R2025a_Linux.zip",
+      "description": "Verificare dimensione file MATLAB zip"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:17:03.236926",
+      "command": "cd /home/sam && mkdir -p matlab_install && cd matlab_install && unzip -q /home/sam/Downloads/matlab_R2025a_Linux.zip",
+      "description": "Estrarre file MATLAB in directory dedicata"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:17:18.217879",
+      "command": "cd /home/sam/matlab_install && ls -la",
+      "description": "Verificare contenuto estratto"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T18:17:20.358686",
+      "todo_count": 4
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:17:26.890349",
+      "command": "cd /home/sam/matlab_install && ./install -help",
+      "description": "Vedere opzioni di installazione MATLAB"
+    },
+    {
+      "operation": "read",
+      "timestamp": "2025-09-16T18:17:34.229627",
+      "file_path": "/home/sam/matlab_install/installer_input.txt"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T18:17:40.542186",
+      "command": "cd /home/sam/matlab_install && sudo ./install -mode interactive",
+      "description": "Avviare installazione interattiva MATLAB"
+    }
+  ],
+  "last_updated": "2025-09-16T18:17:40.542201"
+}

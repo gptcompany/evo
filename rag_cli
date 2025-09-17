@@ -1,0 +1,59 @@
+#!/bin/bash
+# RAG CLI Wrapper Script
+# Gestisce automaticamente ambiente virtuale e percorsi
+
+set -e
+
+# Configurazione
+RAG_ANYTHING_DIR="/home/sam/RAG-Anything"
+VENV_PATH="$RAG_ANYTHING_DIR/.venv"
+CLI_SCRIPT="/home/sam/EVO/src/fixed_rag_cli_tool.py"
+
+# Colori per output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Funzioni di utilità
+error() {
+    echo -e "${RED}❌ Error: $1${NC}" >&2
+    exit 1
+}
+
+info() {
+    echo -e "${GREEN}ℹ️  $1${NC}"
+}
+
+warn() {
+    echo -e "${YELLOW}⚠️  $1${NC}"
+}
+
+# Verifica installazione RAG-Anything
+if [ ! -d "$RAG_ANYTHING_DIR" ]; then
+    error "RAG-Anything not found at $RAG_ANYTHING_DIR"
+fi
+
+if [ ! -d "$VENV_PATH" ]; then
+    error "Virtual environment not found at $VENV_PATH"
+fi
+
+if [ ! -f "$CLI_SCRIPT" ]; then
+    error "CLI script not found at $CLI_SCRIPT"
+fi
+
+# Verifica variabili ambiente
+if [ -f "/home/sam/EVO/.env" ]; then
+    source "/home/sam/EVO/.env"
+fi
+
+if [ -z "$OPENAI_API_KEY" ]; then
+    warn "OPENAI_API_KEY not set. Some operations may fail."
+fi
+
+# Attiva ambiente virtuale ed esegui comando
+cd "$RAG_ANYTHING_DIR"
+source "$VENV_PATH/bin/activate"
+
+# Esegui il CLI tool con tutti gli argomenti passati
+exec python "$CLI_SCRIPT" "$@"

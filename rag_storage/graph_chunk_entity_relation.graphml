@@ -1,0 +1,281 @@
+<?xml version='1.0' encoding='utf-8'?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+  <key id="d11" for="edge" attr.name="created_at" attr.type="long" />
+  <key id="d10" for="edge" attr.name="file_path" attr.type="string" />
+  <key id="d9" for="edge" attr.name="source_id" attr.type="string" />
+  <key id="d8" for="edge" attr.name="keywords" attr.type="string" />
+  <key id="d7" for="edge" attr.name="description" attr.type="string" />
+  <key id="d6" for="edge" attr.name="weight" attr.type="double" />
+  <key id="d5" for="node" attr.name="created_at" attr.type="long" />
+  <key id="d4" for="node" attr.name="file_path" attr.type="string" />
+  <key id="d3" for="node" attr.name="source_id" attr.type="string" />
+  <key id="d2" for="node" attr.name="description" attr.type="string" />
+  <key id="d1" for="node" attr.name="entity_type" attr.type="string" />
+  <key id="d0" for="node" attr.name="entity_id" attr.type="string" />
+  <graph edgedefault="undirected">
+    <node id="EVO">
+      <data key="d0">EVO</data>
+      <data key="d1">Concept</data>
+      <data key="d2">EVO is an advanced system for AI agent orchestration that learns and optimizes autonomously using evolutionary algorithms to determine optimal combinations of agents, tools, and workflows for specific tasks.</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965326</data>
+    </node>
+    <node id="Claude Code">
+      <data key="d0">Claude Code</data>
+      <data key="d1">Method</data>
+      <data key="d2">Claude Code serves as the Master Orchestrator in the 3-Layer Agent Architecture, focusing on high-level coordination, context management, and decision-making.</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965326</data>
+    </node>
+    <node id="Subagent Claude">
+      <data key="d0">Subagent Claude</data>
+      <data key="d1">Method</data>
+      <data key="d2">Subagent Claude functions as a domain expert utilizing the Claude API for planning, architecture, and generating responses.</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965326</data>
+    </node>
+    <node id="MCP Server Pydantic">
+      <data key="d0">MCP Server Pydantic</data>
+      <data key="d1">Method</data>
+      <data key="d2">MCP Server Pydantic is a deep specialist that manages domain expertise and code generation in the 3-Layer Agent Architecture.</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965326</data>
+    </node>
+    <node id="OpenEvolve Integration">
+      <data key="d0">OpenEvolve Integration</data>
+      <data key="d1">Method</data>
+      <data key="d2">OpenEvolve Integration is a process that predicts workflows and evaluates them to determine optimal combinations for user requests.</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965326</data>
+    </node>
+    <node id="User Request">
+      <data key="d0">User Request</data>
+      <data key="d1">Data</data>
+      <data key="d2">User Request initiates the workflow routing process in the evolutionary workflow system.</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965326</data>
+    </node>
+    <node id="Workflow Router">
+      <data key="d0">Workflow Router</data>
+      <data key="d1">Method</data>
+      <data key="d2">Workflow Router is responsible for directing user requests to the appropriate workflows based on predictions made by the OpenEvolve Predictor.</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965326</data>
+    </node>
+    <node id="Workflow A">
+      <data key="d0">Workflow A</data>
+      <data key="d1">Method</data>
+      <data key="d2">Workflow A is a quick and efficient process that is executed in parallel within the evolutionary workflow system.</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965326</data>
+    </node>
+    <node id="Workflow B">
+      <data key="d0">Workflow B</data>
+      <data key="d1">Method</data>
+      <data key="d2">Workflow B offers a thorough and validated approach to task execution within the evolutionary workflow system.</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965327</data>
+    </node>
+    <node id="Workflow C">
+      <data key="d0">Workflow C</data>
+      <data key="d1">Method</data>
+      <data key="d2">Workflow C is considered research-heavy and is executed in parallel with other workflows in the system.</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965327</data>
+    </node>
+    <node id="3-Layer Agent Architecture">
+      <data key="d0">3-Layer Agent Architecture</data>
+      <data key="d1">Concept</data>
+      <data key="d2">The 3-Layer Agent Architecture is a framework that organizes the coordination, planning, and execution of tasks using different types of agents in the EVO system.</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965328</data>
+    </node>
+    <node id="Parallel Execution">
+      <data key="d0">Parallel Execution</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d2">Workflow A is executed in parallel for enhanced efficiency.</data>
+      <data key="d1">UNKNOWN</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965328</data>
+    </node>
+    <node id="OpenEvolve Predictor">
+      <data key="d0">OpenEvolve Predictor</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d2">The Workflow Router collaborates with the OpenEvolve Predictor to determine the best workflows for execution.</data>
+      <data key="d1">UNKNOWN</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965329</data>
+    </node>
+    <node id="CLAUDE CODE">
+      <data key="d0">CLAUDE CODE</data>
+      <data key="d3">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d2">CLAUDE CODE interacts with MCP Server Pydantic to delegate tasks based on domain expertise.</data>
+      <data key="d1">UNKNOWN</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757965329</data>
+    </node>
+    <node id="RAG-Anything">
+      <data key="d0">RAG-Anything</data>
+      <data key="d1">Concept</data>
+      <data key="d2">RAG-Anything is an advanced system for processing multimodal documents using deep learning algorithms.</data>
+      <data key="d3">chunk-185372c097aa8f60f0a0cc241f3b2b08</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757966408</data>
+    </node>
+    <node id="Deep Learning Algorithms">
+      <data key="d0">Deep Learning Algorithms</data>
+      <data key="d1">Method</data>
+      <data key="d2">Deep learning algorithms are utilized by the system to process texts, images, tables, and mathematical formulas.</data>
+      <data key="d3">chunk-185372c097aa8f60f0a0cc241f3b2b08</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757966408</data>
+    </node>
+    <node id="PDF">
+      <data key="d0">PDF</data>
+      <data key="d1">Data</data>
+      <data key="d2">PDF is a complex document format that can be analyzed by the RAG-Anything system.</data>
+      <data key="d3">chunk-185372c097aa8f60f0a0cc241f3b2b08</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757966408</data>
+    </node>
+    <node id="Office Documents">
+      <data key="d0">Office Documents</data>
+      <data key="d1">Data</data>
+      <data key="d2">Office documents are another format that the RAG-Anything system can process effectively.</data>
+      <data key="d3">chunk-185372c097aa8f60f0a0cc241f3b2b08</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757966408</data>
+    </node>
+    <node id="Multimodal Documents">
+      <data key="d0">Multimodal Documents</data>
+      <data key="d1">Concept</data>
+      <data key="d2">Multimodal documents refer to documents that contain multiple types of data, including text, images, tables, and formulas.</data>
+      <data key="d3">chunk-185372c097aa8f60f0a0cc241f3b2b08</data>
+      <data key="d4">unknown_source</data>
+      <data key="d5">1757966408</data>
+    </node>
+    <edge source="EVO" target="OpenEvolve Integration">
+      <data key="d6">1.0</data>
+      <data key="d7">EVO utilizes OpenEvolve Integration to enhance workflow decision-making and optimization.</data>
+      <data key="d8">AI orchestration,process improvement</data>
+      <data key="d9">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757965328</data>
+    </edge>
+    <edge source="Subagent Claude" target="CLAUDE CODE">
+      <data key="d6">1.0</data>
+      <data key="d7">CLAUDE CODE orchestrates tasks executed by Subagent Claude as part of the agent architecture.</data>
+      <data key="d8">execution,orchestration</data>
+      <data key="d9">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757965330</data>
+    </edge>
+    <edge source="MCP Server Pydantic" target="CLAUDE CODE">
+      <data key="d6">1.0</data>
+      <data key="d7">CLAUDE CODE interacts with MCP Server Pydantic to delegate tasks based on domain expertise.</data>
+      <data key="d8">expertise sharing,task delegation</data>
+      <data key="d9">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757965329</data>
+    </edge>
+    <edge source="User Request" target="Workflow Router">
+      <data key="d6">1.0</data>
+      <data key="d7">User Request triggers the Workflow Router to direct requests to the appropriate workflow.</data>
+      <data key="d8">process initiation,routing</data>
+      <data key="d9">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757965328</data>
+    </edge>
+    <edge source="Workflow Router" target="OpenEvolve Predictor">
+      <data key="d6">1.0</data>
+      <data key="d7">The Workflow Router collaborates with the OpenEvolve Predictor to determine the best workflows for execution.</data>
+      <data key="d8">prediction,workflow management</data>
+      <data key="d9">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757965329</data>
+    </edge>
+    <edge source="Workflow A" target="Parallel Execution">
+      <data key="d6">1.0</data>
+      <data key="d7">Workflow A is executed in parallel for enhanced efficiency.</data>
+      <data key="d8">efficiency,execution method</data>
+      <data key="d9">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757965328</data>
+    </edge>
+    <edge source="Workflow A" target="OpenEvolve Predictor">
+      <data key="d6">1.0</data>
+      <data key="d7">OpenEvolve Predictor identifies Workflow A for fast execution based on user requirements.</data>
+      <data key="d8">execution,workflow prediction</data>
+      <data key="d9">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757965331</data>
+    </edge>
+    <edge source="Workflow B" target="Parallel Execution">
+      <data key="d6">1.0</data>
+      <data key="d7">Workflow B is executed in parallel to provide thorough task management.</data>
+      <data key="d8">execution method,thoroughness</data>
+      <data key="d9">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757965330</data>
+    </edge>
+    <edge source="Workflow B" target="OpenEvolve Predictor">
+      <data key="d6">1.0</data>
+      <data key="d7">OpenEvolve Predictor identifies Workflow B for thorough execution based on user requirements.</data>
+      <data key="d8">execution,workflow prediction</data>
+      <data key="d9">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757965331</data>
+    </edge>
+    <edge source="Workflow C" target="Parallel Execution">
+      <data key="d6">1.0</data>
+      <data key="d7">Workflow C is executed in parallel highlighting the focus on research-heavy elements.</data>
+      <data key="d8">execution method,research focus</data>
+      <data key="d9">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757965330</data>
+    </edge>
+    <edge source="Workflow C" target="OpenEvolve Predictor">
+      <data key="d6">1.0</data>
+      <data key="d7">OpenEvolve Predictor identifies Workflow C for research-heavy tasks based on user requirements.</data>
+      <data key="d8">execution,workflow prediction</data>
+      <data key="d9">chunk-c81c83c832984314cb03a2e4d89ecc5c</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757965332</data>
+    </edge>
+    <edge source="RAG-Anything" target="Deep Learning Algorithms">
+      <data key="d6">1.0</data>
+      <data key="d7">The RAG-Anything system utilizes deep learning algorithms to enhance its document processing capabilities.</data>
+      <data key="d8">processing capability,system utilization</data>
+      <data key="d9">chunk-185372c097aa8f60f0a0cc241f3b2b08</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757966410</data>
+    </edge>
+    <edge source="RAG-Anything" target="PDF">
+      <data key="d6">1.0</data>
+      <data key="d7">RAG-Anything can analyze complex PDF documents as part of its functionalities.</data>
+      <data key="d8">document analysis,processing ability</data>
+      <data key="d9">chunk-185372c097aa8f60f0a0cc241f3b2b08</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757966410</data>
+    </edge>
+    <edge source="RAG-Anything" target="Office Documents">
+      <data key="d6">1.0</data>
+      <data key="d7">RAG-Anything is capable of processing Office documents alongside other formats.</data>
+      <data key="d8">document handling,processing ability</data>
+      <data key="d9">chunk-185372c097aa8f60f0a0cc241f3b2b08</data>
+      <data key="d10">unknown_source</data>
+      <data key="d11">1757966411</data>
+    </edge>
+  </graph>
+</graphml>

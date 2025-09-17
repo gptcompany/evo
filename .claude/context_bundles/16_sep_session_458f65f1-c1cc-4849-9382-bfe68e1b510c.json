@@ -1,0 +1,30 @@
+{
+  "session_id": "458f65f1-c1cc-4849-9382-bfe68e1b510c",
+  "created_at": "2025-09-16T15:37:10.152469",
+  "operations": [
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T15:37:10.152486",
+      "command": "dpkg -l intel-microcode | grep -E \"^ii\"",
+      "description": "Confermare installazione microcode Intel"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T15:37:17.829142",
+      "command": "cat /sys/devices/system/clocksource/clocksource0/current_clocksource",
+      "description": "Verificare clocksource attuale pre-reboot"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T15:37:23.332226",
+      "command": "systemctl --failed | wc -l",
+      "description": "Verificare che non ci siano servizi falliti"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T15:37:43.128209",
+      "todo_count": 6
+    }
+  ],
+  "last_updated": "2025-09-16T15:37:43.128224"
+}

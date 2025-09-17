@@ -1,0 +1,79 @@
+{
+  "session_id": "95de725b-086c-44ad-8801-182f80975d1e",
+  "created_at": "2025-09-17T10:15:18.394541",
+  "operations": [
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-17T10:15:18.394554",
+      "command": "pactl list sinks",
+      "description": "List audio sinks to see available outputs"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-17T10:15:24.806765",
+      "command": "pactl get-default-sink",
+      "description": "Check current default audio sink"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-17T10:15:29.739212",
+      "command": "ls -la ~/.config/pulse/",
+      "description": "Check PulseAudio user configuration"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-17T10:15:33.600190",
+      "command": "cat ~/.config/pulse/*default-sink",
+      "description": "Check saved default sink configuration"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-17T10:15:37.465381",
+      "command": "systemctl --user status pulseaudio",
+      "description": "Check PulseAudio service status"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-17T10:15:42.037586",
+      "command": "grep -r \"analog-stereo\\|built-in\" /etc/pulse/ 2>/dev/null || echo \"No system-wide pulse configs affecting this\"",
+      "description": "Check system-wide PulseAudio configs for built-in preferences"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-17T10:15:45.093354",
+      "command": "ls /etc/pulse/",
+      "description": "Check what PulseAudio system configs exist"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-17T10:15:48.880203",
+      "command": "grep -i \"set-default-sink\\|load-module.*prefer\" /etc/pulse/default.pa",
+      "description": "Check if default.pa has any sink preferences"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-17T10:15:52.771276",
+      "command": "ps aux | grep -E \"(pulse|alsa|sound)\" | grep -v grep",
+      "description": "Check running audio-related processes"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-17T10:15:57.480534",
+      "command": "gsettings list-recursively org.gnome.desktop.sound | head -10",
+      "description": "Check GNOME sound settings"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-17T10:16:03.068519",
+      "command": "dconf read /org/gnome/control-center/cc-panels/sound/last-device-for-speakers 2>/dev/null || echo \"No GNOME sound panel config found\"",
+      "description": "Check GNOME Control Center sound device preferences"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-17T10:16:08.974557",
+      "command": "echo \"Current default: $(pactl get-default-sink)\"; pulseaudio -k; sleep 2; echo \"After restart: $(pactl get-default-sink)\"",
+      "description": "Test what happens when PulseAudio restarts"
+    }
+  ],
+  "last_updated": "2025-09-17T10:16:08.974571"
+}

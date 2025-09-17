@@ -1,0 +1,14 @@
+{
+  "doc-c81c83c832984314cb03a2e4d89ecc5c": {
+    "content": "# 🧬 EVO: Evolutionary Multi-Agent Workflow System\n\n## 🎯 Vision\n\nEVO rappresenta la prossima evoluzione dell'AI agent orchestration: un sistema che non solo coordina multiple AI agents, ma **apprende e si ottimizza autonomamente** attraverso evolutionary algorithms per trovare la combinazione ottimale di agenti, tools e workflows per ogni specifico task.\n\n## 🏗️ Architettura Core\n\n### 3-Layer Agent Architecture con Token Separation\n\n```\n┌─────────────────────────────────────────────────────────┐\n│ CLAUDE CODE (Master Orchestrator)                      │\n│ • Token Window 1: Claude Sonnet/Opus                   │\n│ • Role: Coordinamento, context, decisioni high-level   │\n│ • Calls: MCP servers, subagents, workflow routing      │\n└─────────────────────┬───────────────────────────────────┘\n                      │\n        ┌─────────────┴─────────────┐\n        │                           │\n┌───────▼──────────┐    ┌──────────▼────────────┐\n│ SUBAGENT CLAUDE  │    │ MCP SERVER PYDANTIC   │\n│ (Domain Expert)  │    │ (Deep Specialist)     │\n│ • Token Window 2 │    │ • Token Window 3      │\n│ • Claude API     │    │ • Gemini/GPT/Local    │\n│ • Requirements   │    │ • Domain expertise    │\n│ • Planning       │    │ • Code generation     │\n│ • Architecture   │    │ • Context7 RAG        │\n└──────────────────┘    └───────────────────────┘\n```\n\n## 🔄 Evolutionary Workflow System\n\n### Il Problema Fondamentale\nCome determinare quale combinazione di agenti è ottimale per raggiungere l'obiettivo dell'utente? E come valutare continuamente e migliorare questi workflows?\n\n### La Soluzione: OpenEvolve Integration\n\n```mermaid\ngraph TD\n    A[User Request] --> B[Workflow Router]\n    B --> C{OpenEvolve Predictor}\n    \n    C --> D[Workflow A<br/>Fast & Direct]\n    C --> E[Workflow B<br/>Thorough & Validated] \n    C --> F[Workflow C<br/>Research-Heavy]\n    \n    D --> G[Parallel Execution]\n    E --> G\n    F --> G\n    \n    G --> H{Multi-Dimensional<br/>Evaluation}\n    \n    H --> I[Cost Analysis<br/>",
+    "create_time": 1757965303,
+    "update_time": 1757965303,
+    "_id": "doc-c81c83c832984314cb03a2e4d89ecc5c"
+  },
+  "doc-185372c097aa8f60f0a0cc241f3b2b08": {
+    "content": "RAG-Anything è un sistema avanzato per l'elaborazione di documenti multimodali. \n    Utilizza algoritmi di deep learning per processare testi, immagini, tabelle e formule matematiche.\n    Il sistema può analizzare PDF complessi, documenti Office e altri formati.",
+    "create_time": 1757966399,
+    "update_time": 1757966399,
+    "_id": "doc-185372c097aa8f60f0a0cc241f3b2b08"
+  }
+}

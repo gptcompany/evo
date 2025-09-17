@@ -1,0 +1,36 @@
+{
+  "doc-c81c83c832984314cb03a2e4d89ecc5c": {
+    "status": "processed",
+    "chunks_count": 1,
+    "chunks_list": [
+      "chunk-c81c83c832984314cb03a2e4d89ecc5c"
+    ],
+    "content_summary": "# 🧬 EVO: Evolutionary Multi-Agent Workflow System\n\n## 🎯 Vision\n\nEVO rappresenta la prossima evoluzione dell'AI agent orchestration: un sistema che non solo coordina multiple AI agents, ma **apprende e si ottimizza autonomamente** attraverso evolution...",
+    "content_length": 2000,
+    "created_at": "2025-09-15T19:41:43.657598+00:00",
+    "updated_at": "2025-09-15T19:42:13.086525+00:00",
+    "file_path": "unknown_source",
+    "track_id": "insert_20250915_204143_f3845c44",
+    "metadata": {
+      "processing_start_time": 1757965303,
+      "processing_end_time": 1757965333
+    }
+  },
+  "doc-185372c097aa8f60f0a0cc241f3b2b08": {
+    "status": "processed",
+    "chunks_count": 1,
+    "chunks_list": [
+      "chunk-185372c097aa8f60f0a0cc241f3b2b08"
+    ],
+    "content_summary": "RAG-Anything è un sistema avanzato per l'elaborazione di documenti multimodali. \n    Utilizza algoritmi di deep learning per processare testi, immagini, tabelle e formule matematiche.\n    Il sistema può analizzare PDF complessi, documenti Office e al...",
+    "content_length": 262,
+    "created_at": "2025-09-15T19:59:59.848817+00:00",
+    "updated_at": "2025-09-15T20:00:12.578157+00:00",
+    "file_path": "unknown_source",
+    "track_id": "insert_20250915_205959_2405dd0c",
+    "metadata": {
+      "processing_start_time": 1757966399,
+      "processing_end_time": 1757966412
+    }
+  }
+}

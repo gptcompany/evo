@@ -1,0 +1,251 @@
+{
+  "session_id": "9a8fbf56-efb7-43e4-a8c9-db5699212a88",
+  "created_at": "2025-09-16T12:40:39.899785",
+  "operations": [
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:40:39.899800",
+      "command": "echo \"=== VERIFICA STATO FILESYSTEM DOPO INTERRUZIONE ===\" && sudo e2fsck -n /dev/sdb4 | head -10",
+      "description": "Verifica stato filesystem dopo interruzione"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:40:42.897045",
+      "command": "echo \"=== TENTATIVO RIDIMENSIONAMENTO CON TIMEOUT MAGGIORE ===\" && timeout 300 sudo resize2fs /dev/sdb4 100G && echo \"RIDIMENSIONAMENTO COMPLETATO\" || echo \"RIDIMENSIONAMENTO FALLITO O TROPPO LENTO\"",
+      "description": "Riprova ridimensionamento con timeout 5 minuti"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T12:40:57.767216",
+      "todo_count": 12
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:41:07.383414",
+      "command": "echo \"=== ANALISI SETTORI ATTUALI ===\" && sudo fdisk -l /dev/sdb | grep \"^/dev/sdb4\"",
+      "description": "Visualizza settori attuali della partizione sdb4"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:41:10.999862",
+      "command": "echo \"=== CALCOLO SETTORI PER 100GB ===\" && echo \"Settori per 100GB: $((100 * 1024 * 1024 * 1024 / 512))\" && echo \"Settore finale calcolato: $((2105344 + 100 * 1024 * 1024 * 1024 / 512))\"",
+      "description": "Calcola settori necessari per 100GB"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:41:20.959517",
+      "command": "echo \"=== RIDIMENSIONAMENTO PARTIZIONE CON PARTED (PIU SICURO) ===\" && sudo parted /dev/sdb print",
+      "description": "Visualizza partizioni con parted per ridimensionamento sicuro"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:41:23.324087",
+      "command": "echo \"=== RIDIMENSIONO PARTIZIONE 4 A 100GB ===\" && sudo parted /dev/sdb resizepart 4 100GB && echo \"=== CREO PARTIZIONE 5 NELLO SPAZIO LIBERO ===\" && sudo parted /dev/sdb mkpart primary ext4 100GB 100%",
+      "description": "Ridimensiona partizione 4 e crea partizione 5"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:41:30.928290",
+      "command": "echo \"=== RIDIMENSIONAMENTO AUTOMATICO ===\" && echo \"Yes\" | sudo parted /dev/sdb resizepart 4 100GB",
+      "description": "Ridimensiona partizione con conferma automatica"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:41:32.222130",
+      "command": "echo \"=== VERIFICA RIDIMENSIONAMENTO ===\" && sudo parted /dev/sdb print",
+      "description": "Verifica il ridimensionamento della partizione"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:41:43.340190",
+      "command": "echo \"=== APPROCCIO ALTERNATIVO: USO FDISK PER MAGGIOR CONTROLLO ===\" && sudo fdisk /dev/sdb <<EOF\np\nd\n4\nn\np\n4\n2105344\n+100G\nn\np\n5\n\nw\nEOF",
+      "description": "Ridimensiona con fdisk: elimina partizione 4, ricrea più piccola, aggiungi partizione 5"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:41:52.322754",
+      "command": "echo \"=== VERIFICA SPAZIO DISCO DOPO RIDIMENSIONAMENTO FILESYSTEM ===\" && sudo parted /dev/sdb unit s print | grep \"^Disk\\|^ 4\"",
+      "description": "Verifica spazio e posizione partizione 4"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:41:55.109092",
+      "command": "echo \"=== USO SGDISK PER RIDIMENSIONAMENTO PIU SICURO ===\" && sudo sgdisk --print /dev/sdb",
+      "description": "Visualizza tabella partizioni con sgdisk"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:42:04.468686",
+      "command": "echo \"=== RIDIMENSIONO PARTIZIONE 4 A ~100GB E CREO PARTIZIONE 5 ===\" && sudo sgdisk --delete=4 --new=4:2105344:+100G --new=5:0:0 /dev/sdb",
+      "description": "Elimina partizione 4, ricrea da 100GB, crea partizione 5 nel restante spazio"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:42:10.743783",
+      "command": "echo \"=== VERIFICA NUOVE PARTIZIONI ===\" && sudo sgdisk --print /dev/sdb",
+      "description": "Verifica la nuova struttura delle partizioni"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T12:42:27.068522",
+      "todo_count": 13
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:42:35.296103",
+      "command": "echo \"=== AGGIORNAMENTO TABELLA PARTIZIONI NEL KERNEL ===\" && sudo partprobe /dev/sdb && echo \"=== VERIFICA PARTIZIONI RICONOSCIUTE ===\" && ls -la /dev/sdb*",
+      "description": "Aggiorna tabella partizioni nel kernel e verifica device"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:42:38.122378",
+      "command": "echo \"=== FORMATTAZIONE PARTIZIONE 5 CON EXT4 ===\" && sudo mkfs.ext4 -L \"Ubuntu-Current\" /dev/sdb5",
+      "description": "Formatta la nuova partizione sdb5 con ext4"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:42:57.893930",
+      "command": "echo \"=== MOUNT TEMPORANEO PARTIZIONE 5 ===\" && sudo mkdir -p /mnt/ssd-new && sudo mount /dev/sdb5 /mnt/ssd-new && df -h /mnt/ssd-new",
+      "description": "Monta la nuova partizione per la clonazione"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T12:43:12.901608",
+      "todo_count": 13
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:43:21.801818",
+      "command": "echo \"=== INIZIO CLONAZIONE SISTEMA SU SSD (25GB->135GB) ===\" && sudo rsync -avHAXS --progress --exclude='/dev/*' --exclude='/proc/*' --exclude='/sys/*' --exclude='/tmp/*' --exclude='/run/*' --exclude='/mnt/*' --exclude='/media/*' --exclude='/lost+found' --exclude='/swapfile' / /mnt/ssd-new/",
+      "description": "Clona sistema da HDD a SSD mantenendo permessi e attributi"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:43:31.244458",
+      "command": "echo \"=== CONTROLLO PROGRESSO CLONAZIONE ===\" && du -sh /mnt/ssd-new 2>/dev/null | head -1 || echo \"Clonazione in corso...\"",
+      "description": "Verifica progresso clonazione"
+    },
+    {
+      "operation": "bashoutput",
+      "timestamp": "2025-09-16T12:43:31.248561",
+      "bash_id": "6b3655"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:43:42.910066",
+      "command": "echo \"=== PREPARO UUID PER FSTAB ===\" && echo \"UUID partizione /dev/sdb5: $(sudo blkid /dev/sdb5 -s UUID -o value)\"",
+      "description": "Prepara UUID della nuova partizione per aggiornare fstab"
+    },
+    {
+      "operation": "bashoutput",
+      "timestamp": "2025-09-16T12:44:35.693507",
+      "bash_id": "6b3655"
+    },
+    {
+      "operation": "bashoutput",
+      "timestamp": "2025-09-16T12:44:42.486987",
+      "bash_id": "6b3655",
+      "filter": "sent|total size|speedup"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:44:48.176428",
+      "command": "df -h /mnt/ssd-new && echo \"--- SPAZIO UTILIZZATO SU SSD ---\" && du -sh /mnt/ssd-new",
+      "description": "Check space usage on SSD during cloning"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:44:54.597958",
+      "command": "sudo du -sh /mnt/ssd-new",
+      "description": "Check total size transferred with sudo"
+    },
+    {
+      "operation": "bashoutput",
+      "timestamp": "2025-09-16T12:45:02.030872",
+      "bash_id": "6b3655",
+      "filter": "usr/|home/|var/"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:45:09.703560",
+      "command": "echo \"STATO ATTUALE CLONAZIONE:\" && sudo du -sh /mnt/ssd-new && echo \"--- CONTEGGIO FILE COPIATI ---\" && find /mnt/ssd-new -type f | wc -l",
+      "description": "Check current cloning status and file count"
+    },
+    {
+      "operation": "bashoutput",
+      "timestamp": "2025-09-16T12:45:19.358375",
+      "bash_id": "6b3655",
+      "filter": "total size|sent|speedup"
+    },
+    {
+      "operation": "bashoutput",
+      "timestamp": "2025-09-16T12:45:24.798602",
+      "bash_id": "6b3655"
+    },
+    {
+      "operation": "bashoutput",
+      "timestamp": "2025-09-16T12:45:33.631289",
+      "bash_id": "6b3655",
+      "filter": "sending incremental|sent|total size|speedup is"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:45:40.448328",
+      "command": "sudo du -sh /mnt/ssd-new && echo \"--- FILES COPIED ---\" && sudo find /mnt/ssd-new -type f 2>/dev/null | wc -l",
+      "description": "Check current transfer progress"
+    },
+    {
+      "operation": "bashoutput",
+      "timestamp": "2025-09-16T12:45:49.206511",
+      "bash_id": "6b3655",
+      "filter": "sent.*bytes|total size"
+    },
+    {
+      "operation": "bashoutput",
+      "timestamp": "2025-09-16T12:45:55.259748",
+      "bash_id": "6b3655"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:46:04.483445",
+      "command": "echo \"PROGRESSIVO CLONAZIONE:\" && sudo du -sh /mnt/ssd-new && echo \"--- CONTROLLO SE PROCESS ACTIVE ---\" && ps aux | grep rsync | grep -v grep",
+      "description": "Check cloning progress and process status"
+    },
+    {
+      "operation": "bashoutput",
+      "timestamp": "2025-09-16T12:46:16.006099",
+      "bash_id": "6b3655",
+      "filter": "sent.*bytes|total size is|speedup is"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:46:23.404171",
+      "command": "sudo du -sh /mnt/ssd-new && echo \"--- SISTEMA ORIGINALE ---\" && du -sh / 2>/dev/null | head -1",
+      "description": "Compare current transfer size with original system"
+    },
+    {
+      "operation": "bashoutput",
+      "timestamp": "2025-09-16T12:48:33.240114",
+      "bash_id": "6b3655",
+      "filter": "sent.*bytes.*received.*bytes|total.*size.*is|speedup.*is"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:48:39.089643",
+      "command": "sudo du -sh /mnt/ssd-new",
+      "description": "Check current transfer progress"
+    },
+    {
+      "operation": "bashoutput",
+      "timestamp": "2025-09-16T12:48:47.864646",
+      "bash_id": "6b3655"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T12:48:57.987862",
+      "command": "sudo du -sh /mnt/ssd-new && echo \"TEMPO TRASCORSO: $(($(date +%s) - 1758022984)) secondi\"",
+      "description": "Check progress and elapsed time"
+    }
+  ],
+  "last_updated": "2025-09-16T12:48:57.987877"
+}

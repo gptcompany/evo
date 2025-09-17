@@ -1,0 +1,132 @@
+{
+  "session_id": "b53958a5-a87c-474f-b2d0-cac3d1a5f071",
+  "created_at": "2025-09-16T16:10:55.822733",
+  "operations": [
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T16:10:55.822746",
+      "todo_count": 4
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T16:11:01.521346",
+      "todo_count": 4
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:11:08.438229",
+      "command": "ls -la /boot/",
+      "description": "Verificare contenuti directory boot"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:11:09.064980",
+      "command": "dpkg -l | grep grub",
+      "description": "Controllare pacchetti GRUB installati"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:11:09.810769",
+      "command": "ls -la /sys/firmware/efi",
+      "description": "Verificare se il sistema usa UEFI"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:11:10.454923",
+      "command": "lsblk -f",
+      "description": "Mostrare struttura dischi e filesystem"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:11:20.754643",
+      "command": "efibootmgr -v",
+      "description": "Verificare voci boot UEFI"
+    },
+    {
+      "operation": "read",
+      "timestamp": "2025-09-16T16:11:22.933976",
+      "file_path": "/boot/grub/grub.cfg"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:11:22.953588",
+      "command": "ls -la /boot/efi/EFI/",
+      "description": "Controllare directory EFI"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:11:31.233781",
+      "command": "sudo ls -la /boot/efi/EFI/",
+      "description": "Controllare directory EFI con privilegi"
+    },
+    {
+      "operation": "read",
+      "timestamp": "2025-09-16T16:11:32.750793",
+      "file_path": "/etc/default/grub"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:11:33.275094",
+      "command": "sudo efibootmgr -o 0000",
+      "description": "Impostare Ubuntu come primo boot"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T16:11:43.393678",
+      "todo_count": 4
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:11:53.168748",
+      "command": "sudo efibootmgr -t 30",
+      "description": "Impostare timeout UEFI a 30 secondi"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:11:54.775731",
+      "command": "sudo update-grub",
+      "description": "Aggiornare configurazione GRUB"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T16:12:14.059245",
+      "todo_count": 4
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:12:20.181050",
+      "command": "sudo grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=ubuntu",
+      "description": "Reinstallare GRUB EFI"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:12:23.771708",
+      "command": "efibootmgr -v",
+      "description": "Verificare configurazione finale UEFI"
+    },
+    {
+      "operation": "todowrite",
+      "timestamp": "2025-09-16T16:12:29.762258",
+      "todo_count": 4
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:13:54.656931",
+      "command": "lscpu | grep -i virtualization",
+      "description": "Controllare supporto virtualizzazione CPU"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:13:56.526429",
+      "command": "grep -E \"(vmx|svm)\" /proc/cpuinfo",
+      "description": "Verificare flag virtualizzazione attivi"
+    },
+    {
+      "operation": "bash",
+      "timestamp": "2025-09-16T16:13:57.144429",
+      "command": "kvm-ok 2>/dev/null || echo \"kvm-ok non installato\"",
+      "description": "Testare KVM se disponibile"
+    }
+  ],
+  "last_updated": "2025-09-16T16:13:57.144443"
+}
