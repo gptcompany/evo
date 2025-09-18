@@ -1,0 +1,17 @@
+{
+  "type": "module",
+  "scripts": {
+    "test": "bun run vitest",
+    "test:watch": "bun run vitest --watch",
+    "test:ui": "bun run vitest --ui",
+    "lint": "bun run eslint .",
+    "lint:fix": "bun run eslint . --fix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.35.0",
+    "eslint": "^9.35.0",
+    "tdd-guard": "^1.0.2",
+    "tdd-guard-vitest": "^0.1.5",
+    "vitest": "^3.2.4"
+  }
+}

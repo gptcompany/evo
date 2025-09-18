@@ -1,0 +1,50 @@
+{
+  "session_id": "ba3cebaa-f951-43a4-8da6-842993e19d89",
+  "created_at": "2025-09-17T16:45:37.289306",
+  "operations": [
+    {
+      "operation": "mcp__context7__resolve-library-id",
+      "timestamp": "2025-09-17T16:45:37.289321",
+      "libraryName": "linear"
+    },
+    {
+      "operation": "mcp__serena__check_onboarding_performed",
+      "timestamp": "2025-09-17T17:17:51.654246"
+    },
+    {
+      "operation": "mcp__serena__list_dir",
+      "timestamp": "2025-09-17T17:17:56.615473",
+      "relative_path": ".claude",
+      "recursive": true
+    },
+    {
+      "operation": "read",
+      "timestamp": "2025-09-17T17:18:01.277693",
+      "file_path": "/home/sam/EVO/.claude/settings.local.json"
+    },
+    {
+      "operation": "read",
+      "timestamp": "2025-09-17T17:18:04.572455",
+      "file_path": "/home/sam/EVO/.claude/hooks/notification.py"
+    },
+    {
+      "operation": "mcp__serena__search_for_pattern",
+      "timestamp": "2025-09-17T17:18:09.586928",
+      "substring_pattern": "PostToolUse|post-tool-use|notification",
+      "relative_path": ".claude",
+      "context_lines_before": 2
+    },
+    {
+      "operation": "read",
+      "timestamp": "2025-09-17T17:19:58.713763",
+      "file_path": "/home/sam/EVO/.claude/settings.json"
+    },
+    {
+      "operation": "edit",
+      "timestamp": "2025-09-17T17:20:27.510941",
+      "file_path": "/home/sam/EVO/.claude/settings.json",
+      "old_string": "    \"PostToolUse\": [\n      {\n        \"matcher\": \"Write|Edit|MultiEdit\",\n        \"hooks\": [\n         ..."
+    }
+  ],
+  "last_updated": "2025-09-17T17:20:27.510969"
+}

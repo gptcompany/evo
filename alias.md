@@ -1,15 +1,16 @@
 # Bash Aliases
 
 ```bash
-alias cl4="claude"
-alias cl4b="claude -p"
-alias cl4o="claude --model opus"
-alias cl4s="claude --model sonnet"
-alias cl4vs="claude --dangerously-skip-permissions --model sonnet"
-alias cl4v="claude --dangerously-skip-permissions --model sonnet"
-alias cl4vo="claude --dangerously-skip-permissions --model opus"
-alias tmp="claude --dangerously-skip-permissions --model opus"
-alias cl4ov="claude -p --dangerously-skip-permissions"
-alias cl4ovs="claude -p --dangerously-skip-permissions --model opus"
-alias cv="claude --resume"
+alias cc="claude"
+alias hl="claude -p"
+alias cco="claude --model opus"
+alias ccs="claude --model sonnet"
+alias dsps="claude --dangerously-skip-permissions --model sonnet"
+alias dspo="claude --dangerously-skip-permissions --model opus"
+alias hldsp="claude -p --dangerously-skip-permissions"
+alias hldspo="claude -p --dangerously-skip-permissions --model opus"
+alias ccresearch="claude --mcp_config .mcp.research.json"
+alias ccscrape="claude --mcp_config .mcp.scrape.json"
+alias cccodebase="claude --mcp_config .mcp.codebase.json"
+
 ```

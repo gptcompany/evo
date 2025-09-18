@@ -1,0 +1,4 @@
+# Configuration file
+database:
+  host: localhost
+  port: 5432

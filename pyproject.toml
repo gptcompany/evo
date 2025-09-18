@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "evo"
+version = "0.1.0"
+description = "EVO - Evolutionary multi-agent orchestration system"
+authors = [{name = "Sam", email = "sam@example.com"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "tdd-guard-pytest",
+    "ruff>=0.1.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+tdd_guard_project_root = "/home/sam/EVO"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["*"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "S", "C", "B"]
+ignore = ["E501"]  # Line length handled by formatter
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "ruff>=0.13.0",
+    "tdd-guard-pytest>=0.1.2",
+]

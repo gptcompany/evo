@@ -1,0 +1,10 @@
+{
+  "session_id": "c58e3e97-05cf-4148-9d40-fcf016ae0fd0",
+  "transcript_path": "/home/sam/.claude/projects/-home-sam-EVO/c58e3e97-05cf-4148-9d40-fcf016ae0fd0.jsonl",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "/home/sam/.config/systemd/user/fix-audio-displayport.service",
+    "content": "[Unit]\nDescription=Fix Audio Output to DisplayPort 2\nAfter=pulseaudio.service\nWants=pulseaudio.service\n\n[Service]\nType=oneshot\nExecStart=/home/sam/fix-audio-displayport.sh\nRemainAfterExit=yes\nEnvironment=\"XDG_RUNTIME_DIR=/run/user/1000\"\n\n[Install]\nWantedBy=default.target"
+  }
+}
