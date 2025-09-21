@@ -1,6 +1,6 @@
 ---
 name: researcher-sonnet
-description: "PROACTIVELY usa questo specialista per ricerca accademica approfondita. Trigger: 'cerca paper', 'ricerca accademica', 'analizza video', 'trova letteratura', 'review stato arte'. Fornisci topic preciso."
+description: "PROACTIVELY usa questo specialista per ricerca accademica approfondita. Trigger: 'cerca paper', 'ricerca accademica', 'analizza video', 'trova letteratura', 'review stato arte'. Fornisci topic preciso. download papers .pdf"
 model: sonnet
 tools: mcp__paper-search-mcp__search_arxiv, mcp__paper-search-mcp__search_semantic, mcp__paper-search-mcp__download_arxiv, mcp__paper-search-mcp__read_arxiv_paper, mcp__papers-with-code-mcp__search_papers, mcp__papers-with-code-mcp__get_paper, Read, Write
 color: Orange
