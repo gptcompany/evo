@@ -127,6 +127,9 @@ temp/
 .claude/context_bundles/
 .claude/logs/
 
+# Repository annidate - da copiare manualmente su altri PC
+onchain_research/repositories/
+
 output
 outputs/
 

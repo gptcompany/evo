@@ -49,7 +49,8 @@
       "Read(//home/sam/.rag_databases/**)",
       "Bash(git commit:*)",
       "Bash(uv run pytest:*)",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "Bash(git stash show:*)"
     ],
     "deny": [
       "Read(.claude/tdd-guard/**)"
