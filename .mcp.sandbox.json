@@ -1,0 +1,10 @@
+{
+    "mcpServers": {
+        "sandbox-mcp": {
+            "command": "/usr/local/bin/sandbox-mcp",
+            "args": [
+                "--stdio"
+            ]
+        }
+    }
+}

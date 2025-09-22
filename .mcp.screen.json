@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "screenpilot": {
+      "command": "/media/sam/1TB1/ScreenPilot/.venv/bin/python",
+      "args": [
+        "/media/sam/1TB1/ScreenPilot/main.py"
+      ],
+      "env": {}
+    }
+  }
+}

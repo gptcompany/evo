@@ -119,11 +119,8 @@ temp/
 
 # Hidden files and directories (all files/folders starting with .)
 .serena
-.mcp.*
-.mcp.json
 
 # Claude Code sensitive config
-.claude/settings.json
 .claude/context_bundles/
 .claude/logs/
 

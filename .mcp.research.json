@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "paper-search-mcp": {
+      "args": [
+        "-m",
+        "paper_search_mcp.server"
+      ],
+      "command": "python3",
+      "env": {}
+    },
+    "papers-with-code-mcp": {
+      "args": [
+        "-m",
+        "papers_with_code_mcp.server"
+      ],
+      "command": "python3",
+      "env": {}
+    }
+  }
+}

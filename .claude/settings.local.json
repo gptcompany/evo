@@ -1,17 +1,19 @@
 {
   "permissions": {
     "allow": [
-      "Read(//Users/sam/claude-code-hooks-mastery/**)",
+      "Read(//home/sam/claude-code-hooks-mastery/**)",
+      "Edit(//home/sam/**)",
+      "MultiEdit(//home/sam/**)",
       "mcp__gemini-cli__ask-gemini",
       "WebSearch",
       "mcp__archon__list_projects",
       "mcp__archon__create_project",
       "mcp__archon__delete_project",
-      "Read(//Users/sam/**)",
+      "Read(//home/sam/**)",
       "mcp__context7__get-library-docs",
       "Bash(docker-compose:*)",
-      "Bash(/Users/sam/.local/bin/uv run --from git+https://github.com/oraios/serena serena --help)",
-      "Bash(/Users/sam/.local/bin/uvx:*)",
+      "Bash(/home/sam/.local/bin/uv run --from git+https://github.com/oraios/serena serena --help)",
+      "Bash(/home/sam/.local/bin/uvx:*)",
       "Bash(uv tool install:*)",
       "Bash(serena:*)",
       "Bash(ssh:*)",
@@ -56,18 +58,17 @@
       "Read(.claude/tdd-guard/**)"
     ],
     "ask": [
-      "Write",
-      "Edit",
-      "MultiEdit"
+      "Write"
     ],
-    "defaultMode": "bypassPermissions"
+    "defaultMode": "bypassPermissions",
+    "additionalDirectories": [
+      "/media/sam/1TB1"
+    ]
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "git-mcp",
-    "archon",
     "context7",
-    "vibe_kanban",
     "gemini-cli"
   ]
 }

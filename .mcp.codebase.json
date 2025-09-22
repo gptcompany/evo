@@ -1,0 +1,42 @@
+{
+  "mcpServers": {
+    "git-mcp": {
+      "args": [
+        "mcp-remote",
+        "https://gitmcp.io/docs"
+      ],
+      "command": "npx",
+      "env": {}
+    },
+
+    "context7": {
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "command": "npx",
+      "env": {}
+    },
+
+    "gemini-cli": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "gemini-mcp-tool"
+      ],
+      "env": {}
+    },
+
+    "serena": {
+      "type": "stdio",
+      "command": "serena",
+      "args": [
+        "start-mcp-server",
+        "--context",
+        "ide-assistant",
+        "--project",
+        "."
+      ]
+    }
+  }
+}
